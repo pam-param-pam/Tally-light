@@ -139,6 +139,7 @@ class AtemConsumer(WebsocketConsumer):
         })
 
     def send_event_to_atem(self, event):
+        print(f"atem received from tally {event}")
         if event["room_id"] != self.room_id:
             return
         print("sending event to atem")

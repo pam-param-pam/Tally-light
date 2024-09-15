@@ -20,7 +20,16 @@ op_codes:
 5 - new tally connected, sent from relay -> atem
 6 - change brightness, sent from atem -> relay -> tally
 """
-
+LED_COLORS = {
+    0: "OFF",
+    1: "RED",
+    2: "GREEN",
+    3: "BLUE",
+    4: "YELLOW",
+    5: "PINK",
+    6: "WHITE",
+    7: "ORANGE"
+}
 while True:
     websocket_address = input(f"{Fore.MAGENTA}Please enter relay websocket address: {Fore.LIGHTGREEN_EX}")
     if websocket_address == "skip":
@@ -108,6 +117,17 @@ def on_message(ws, message):
         print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has disconnected from the relay server, reason unknown!")
     elif op_code == 7:  # Tally disconnected
         print(f"{Fore.LIGHTRED_EX}Tally disconnected: tally_number: {tally_number}")
+    elif op_code == 9:  # Status check response
+        try:
+            color = LED_COLORS[json_message['d']['c']]
+        except (KeyError, ValueError):
+            color = "Unknown"
+        print(f"{Fore.LIGHTBLUE_EX}Tally {tally_number} status:")
+        print(f"{Fore.MAGENTA}Battery voltage: {Fore.LIGHTMAGENTA_EX}{json_message['d']['bV']}")
+        print(f"{Fore.MAGENTA}Brightness: {Fore.LIGHTMAGENTA_EX}{json_message['d']['b']}")
+        print(f"{Fore.MAGENTA}Tally name: {Fore.LIGHTMAGENTA_EX}{json_message['d']['n']}")
+        print(f"{Fore.MAGENTA}Current color: {Fore.LIGHTMAGENTA_EX}{color}")
+        print(f"{Fore.MAGENTA}Wifi name: {Fore.LIGHTMAGENTA_EX}{json_message['d']['s']}")
 
 def on_error(ws, error):
     if "Handshake status 403 Access denied" in str(error):
@@ -162,6 +182,7 @@ try:
                 print(f"Commands:")
                 print(f"{Fore.LIGHTBLUE_EX}ping <tally_code>       tests connection to tally, should immediately return PONG")
                 print(f"{Fore.LIGHTBLUE_EX}brightness <tally_code> <value from 0 - 255>      changes brightness of tally lights")
+                print(f"{Fore.LIGHTBLUE_EX}status <tally_code>      get status of tally light")
 
                 continue
             split_values = command.split(" ")
@@ -177,6 +198,8 @@ try:
                 send_websocket_message(json.dumps({"op": 2, "t": int(t_code), "d": "Hello there"}))
             elif command == "brightness":
                 send_websocket_message(json.dumps({"op": 6, "t": int(t_code), "d": ''.join(args)}))
+            elif command == "status":
+                send_websocket_message(json.dumps({"op": 9, "t": int(t_code), "d": ""}))
             else:
                 print(f"{Fore.RED}Command not found try: help")
         except (ValueError, IndexError):
