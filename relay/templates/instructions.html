@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tally Light Instructions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            color: #333;
+        }
+        h2 {
+            color: #006699;
+        }
+        h3 {
+            color: #333;
+        }
+        p {
+            margin-bottom: 20px;
+        }
+        ul {
+            list-style-type: decimal;
+            margin-left: 20px;
+        }
+        ul ul {
+            list-style-type: lower-alpha;
+            margin-left: 20px;
+        }
+        .color-explanation {
+            margin-top: 30px;
+        }
+        .color-explanation dt {
+            font-weight: bold;
+        }
+        .color-explanation dd {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>How to Use</h2>
+    <p>Follow these instructions to set up your tally lights:</p>
+
+    <ol>
+        <li>
+            Determine which mode to use.
+        </li>
+        <li>
+            Modes of operation:
+            <ul>
+                <li><strong>A</strong>: Tally lights directly connect to ATEM</li>
+                <li><strong>B</strong>: Tally lights connect via RELAY server</li>
+            </ul>
+        </li>
+        <li>
+            If mode <strong>A</strong>:
+            <ul>
+                <li>Power up ATEM switcher, connect it to the WiFi network.</li>
+                <li>Find ATEM's local IP.</li>
+                <li>Power up tally lights.</li>
+                <li>Flick the switch button to turn on SOFT AP mode; the LED must turn white!</li>
+                <li>On your phone, open WiFi and find a new network called something like "tally setup" or "ESP-...". Connect to it.</li>
+                <li>Open your browser and type <code>192.168.4.1</code>. Click enter and input all the required settings, including ATEM's local IP. Ensure the "use relay server" setting is set to <strong>FALSE</strong>.</li>
+                <li>Click save! And you are ready to go!</li>
+            </ul>
+        </li>
+        <li>
+            If mode <strong>B</strong>:
+            <ul>
+                <li>Power up ATEM, connect it to the WiFi network.</li>
+                <li>Find ATEM's local IP.</li>
+                <li>Find a computer, power it up, and connect it to the same WiFi network as ATEM.</li>
+                <li>On the computer, open a browser and type: <a href="https://tally.pamparampam.dev/download/program">tally.pamparampam.dev/download/program</a>.</li>
+                <li>After the .exe file is downloaded, run it. In the command line, input the required settings. You can type "skip" to use the default ones.</li>
+                <li>Make sure virus blocker is not blocking the .exe file access to internet.</li>
+                <li>Relay Room ID is a unique identifier. Create a unique word or number and <strong>REMEMBER IT!</strong></li>
+                <li>If everything works, you should see "Connected to Atem Switcher!"</li>
+                <li>Power up tally lights.</li>
+                <li>Flick the switch button to turn on SOFT AP mode; the LED must turn white!</li>
+                <li>On your phone, open WiFi and find a new network called something like "tally setup" or "ESP-...". Connect to it.</li>
+                <li>Open your browser and type <code>192.168.4.1</code>. Click enter and input all the required settings. Ensure the "use relay server" setting is set to <strong>TRUE</strong>.</li>
+                <li>It's extremely important to input the same values as in the .exe program.</li>
+                <li>If you used the default ones, they will be:
+                    <ul>
+                        <li>Relay WebSocket Host: <code>tally.pamparampam.dev</code></li>
+                        <li>Relay WebSocket Path: <code>/tally</code></li>
+                        <li>Relay WebSocket Port: <code>443</code></li>
+                        <li>Relay Room ID: <code>your unique Room ID</code> from step 6</li>
+                    </ul>
+                </li>
+                <li>Click save! And you are ready to go!</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h2>Explanation of Colors</h2>
+    <dl class="color-explanation">
+        <dt>Blue</dt>
+        <dd>Tally light is trying to connect to WiFi. If it's blue for a long time, you most likely have given it the wrong WiFi credentials.</dd>
+
+        <dt>White</dt>
+        <dd>SOFT AP is ON. You can find a WiFi network, connect to it, and by typing <code>192.168.1.4</code> in your browser, you can change tally's settings.</dd>
+
+        <dt>Pink</dt>
+        <dd>Connected to WiFi, trying to connect either to ATEM or Relay Server.</dd>
+
+        <dt>Yellow</dt>
+        <dd>Connected to WiFi and relay server, no info about preview/live. Most likely the .exe program is not set up correctly.</dd>
+
+        <dt>Green</dt>
+        <dd>Tally is on PREVIEW.</dd>
+
+        <dt>Red</dt>
+        <dd>Tally is LIVE.</dd>
+
+        <dt>Off</dt>
+        <dd>Either tally light is not turned on, or Tally is both not on PREVIEW and LIVE.</dd>
+    </dl>
+</body>
+</html>
