@@ -18,7 +18,7 @@ class TallyConsumer(WebsocketConsumer):
     def connect(self):
         print("opening tally consumer")
         self.accept()
-        # Start a timer for 15 seconds to close the connection if not authenticated
+        # Start a timer for 5 seconds to close the connection if not authenticated
         self.auth_timer = threading.Timer(5, self.close_if_not_authenticated)
         self.auth_timer.start()
 
