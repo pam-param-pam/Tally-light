@@ -53,7 +53,7 @@ When connecting to `/atem`, you must include `room-id` header with Room ID
 there can only be 1 client connected to `/atem` per Room ID.
 
 
-### Based on
+### esp8266 code based on
 
 - [@AronHetLam's Tally Light](https://github.com/AronHetLam/ATEM_tally_light_with_ESP8266)
 
