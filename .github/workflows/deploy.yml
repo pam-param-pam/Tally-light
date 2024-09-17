@@ -18,9 +18,31 @@ jobs:
         username: ${{ secrets.CI_RPI_USERNAME }}
         key: ${{ secrets.CI_RPI_SSH_KEY }}
         script: |
-          cd relay
+          # Navigate to the home directory or your desired parent directory
+          cd ~
+
+          # Attempt to navigate to the tally-light directory
+          if [ -d "tally-light" ]; then
+            echo "Directory tally-light exists. Pulling the latest changes."
+            cd tally-light
+            git pull
+          else
+            echo "Directory tally-light does not exist. Cloning the repository."
+            git clone https://github.com/pam-param-pam/Tally-light.git
+            cd tally-light
+          fi
           
-          # Activate virtual environment if necessary
+          # Checkout the master branch
+          git checkout master
+
+          # Navigate to the relay directory
+          cd relay
+
+          # Create or update the .env file with the DJANGO_SECRET_KEY
+          echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" > .env
+          echo "DEBUG=false" > .env
+
+          # Activate virtual environment
           source venv/bin/activate
           
           # Install required packages
