@@ -40,7 +40,7 @@ jobs:
 
           # Create or update the .env file with the secrets
           echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
-          echo "DEBUG=false" >> .env
+          echo "DEBUG=False" >> .env
 
           # Check if virtual environment exists; create if it doesn't
           if [ ! -d "venv" ]; then
