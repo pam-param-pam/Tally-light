@@ -18,6 +18,3 @@ jobs:
         script: |
           # Stop the tally-light service
           sudo systemctl stop tally-light
-          
-          # Optional: Check the status of the service
-          sudo systemctl status tally-light

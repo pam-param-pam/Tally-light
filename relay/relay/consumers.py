@@ -33,6 +33,7 @@ class TallyConsumer(WebsocketConsumer):
         except (ValueError, KeyError):
             print("tally close 1")
             self.close()
+
     def disconnect(self, close_code):
         print("tally disconnect")
         print(close_code)

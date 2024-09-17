@@ -38,7 +38,7 @@ jobs:
           # Navigate to the relay directory
           cd relay
 
-          # Create or update the .env file with the DJANGO_SECRET_KEY
+          # Create or update the .env file with the secrets
           echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
           echo "DEBUG=false" >> .env
 
@@ -64,4 +64,6 @@ jobs:
           sudo systemctl daemon-reload
           sudo systemctl restart tally-light
           sudo systemctl status tally-light
-
+          
+          # Optional: Check the status of the service
+          sudo systemctl status tally-light

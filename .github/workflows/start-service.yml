@@ -1,4 +1,4 @@
-name: Stop Django Application
+name: Start Django Application
 
 on:
   workflow_dispatch:
