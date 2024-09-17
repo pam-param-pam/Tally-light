@@ -68,7 +68,7 @@ print(f"{Fore.LIGHTBLUE_EX}===Connecting to ATEM SWITCHER(timeout=3)===")
 
 switcher.waitForConnection(timeout=3)
 if not switcher.connected:
-    print(f"{Fore.RED}ERROR:  CAN'T CONNECT TO ATEM SWITCHER!!!")
+    print(f"{Fore.RED}ERROR: CAN'T CONNECT TO ATEM SWITCHER!!!")
     print(f"{Fore.LIGHTRED_EX}Restart program with a correct ATEM IP, make sure:\n1) Atem is turned ON.\n2) ATEM is in the same network as this computer.\n3) Anti virus is not blocking this program's network access.")
     sys.exit(0)
 else:
