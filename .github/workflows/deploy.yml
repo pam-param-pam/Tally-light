@@ -18,10 +18,10 @@ jobs:
         username: ${{ secrets.CI_RPI_USERNAME }}
         key: ${{ secrets.CI_RPI_SSH_KEY }}
         script: |
-          # Navigate to the home directory or your desired parent directory
+        # Navigate to the home directory or your desired parent directory
           cd ~
 
-          # Attempt to navigate to the tally-light directory
+        # Attempt to navigate to the tally-light directory
           if [ -d "Tally-light" ]; then
             echo "Directory tally-light exists. Pulling the latest changes."
             cd Tally-light
@@ -32,30 +32,36 @@ jobs:
             cd Tally-light
           fi
           
-          # Checkout the master branch
+        # Checkout the master branch
           git checkout master
 
-          # Navigate to the relay directory
+        # Navigate to the relay directory
           cd relay
 
-          # Create or update the .env file with the DJANGO_SECRET_KEY
+        # Create or update the .env file with the DJANGO_SECRET_KEY
           echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
           echo "DEBUG=false" >> .env
 
-          # Check if virtual environment exists; create if it doesn't
+        # Check if virtual environment exists; create if it doesn't
           if [ ! -d "venv" ]; then
             echo "Virtual environment not found, creating one."
             python3 -m venv venv
           fi
           
-          # Activate virtual environment
+        # Activate virtual environment
           source venv/bin/activate
           
-          # Upgrade pip to avoid potential issues
+        # Upgrade pip to avoid potential issues
           pip install --upgrade pip
           
-          # Install required packages
+        # Install required packages
           pip install -r requirements.txt
           
-          # Run Django application
-          nohup python manage.py runserver 0.0.0.0:9000 &
+        # Run daemon service
+          sudo mv .env /etc/systemd/system/tally-light.env
+          sudo cp tally-light.service /etc/systemd/system/tally-light.service
+
+          sudo systemctl daemon-reload
+          sudo systemctl restart tally-light
+          sudo systemctl status tally-light
+

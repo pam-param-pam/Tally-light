@@ -1,0 +1,34 @@
+# place in /etc/systemd/system/whatever.service and install with `systemd install whatever.service`
+# note that if you change this file you will need to run `systemctl daemon-reload` to get systemd to notice
+[Unit]
+Description=service for the Tally Light Django server
+
+# After networking because we need that
+After=network.target
+
+[Service]
+
+# Simple services don't do any forking / background nonsense
+Type=simple
+
+# User with which to run the service
+User=jedrz
+
+# Any setup we need to do,  specifying the shell because otherwise who knows what's up
+ExecStartPre=/bin/bash -c 'echo "hello world from the Tally Light prestart"'
+
+# Set the  working directory for  the application
+WorkingDirectory=/home/jedrz/Tally-light/relay
+
+EnvironmentFile=/etc/systemd/system/tally-light.env
+
+# Command to run the application
+ExecStart=python manage.py runserver 0.0.0.0:9000
+
+
+# Restart policy, only on failure
+Restart=on-failure
+
+[Install]
+# Start the service before we get to multi-user mode
+WantedBy=multi-user.target
