@@ -1,0 +1,30 @@
+name: Deploy Django Application
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Deploy to Virtual Machine
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.CI_DEPLOYMENT_HOST }}
+        port: ${{ secrets.CI_DEPLOYMENT_PORT }}
+        username: ${{ secrets.CI_RPI_USERNAME }}
+        key: ${{ secrets.CI_RPI_SSH_KEY }}
+        script: |
+          cd relay
+          
+          # Activate virtual environment if necessary
+          source venv/bin/activate
+          
+          # Install required packages
+          pip install -r requirements.txt
+          
+          # Run Django application
+          nohup python manage.py runserver 0.0.0.0:9000 &

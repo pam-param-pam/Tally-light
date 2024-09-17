@@ -38,18 +38,17 @@ it means that it's designated for the Tally Light. When 't' is 0, it means all T
 Different OP codes mean different events:
 
 
-| op  | Event                 | Type                   | Data payload                                                 | Description                                                                                                      |
-|:----|:----------------------|:-----------------------|:-------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------|
-| `1` | IDENTIFY              | Tally -> Relay         | `{"rId": int}`                                               | must include Room ID, must be sent within 5 seconds of connecting to relay                                       |
-| `2` | PING                  | Atem -> Relay -> Tally | `{"pg": int, "pv": int}`                                     | program/preview change. pg and pv are program and preview source, each representing an int from 1 to 64          
-| `3` | PONG                  | Tally -> Relay -> Atem | `"Hello there"`                                              | Atem may send this to tally to check if its still listening                                                      |
-| `4` | PROGRAM CHANGE        | Atem -> Relay -> Tally | `"General Kenobi"`                                           | Tally must respond to PING event with PONG event to inform that it's still listening                             |
-| `5` | NEW TALLY CONNECTED   | Relay -> Atem          | `"New tally connected"`                                      | Sent to atem when a new tally connects                                                                           |
-| `6` | CHANGE BRIGHTNESS     | Atem -> Relay -> Tally | `{"b": int}`                                                 | Brightness is an int from 0 to 255, the higher the brighter                                                      |
-| `7` | TALLY DISCONNECTED    | Relay -> Atem          | `":("`                                                       | Sent to atem when tally disconnects                                                                              |
-| `8` | ATEM DISCONNECTED     | Relay -> Tally         | `":("`                                                       | Sent to tally when atem disconnects                                                                              |
-| `9` | STATUS CHECK          | ATEM -> Relay -> Tally | `""`                                                         | Atem sends this to obtain Tally Lights status info                                                               |
-| `9` | STATUS CHECK RESPONSE | Tally -> Relay -> ATEM | `"{"bV": int, "n": string, b": int, "c": int, "s": string}"` | Sent by tally, bW is battery voltage, b is brightness, c is color, s wifi name, n is tally name |
+| op  | Event                 | Type                   | Data payload                                                   | Description                                                                                                      |
+|:----|:----------------------|:-----------------------|:---------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------|
+| `2` | PING                  | Atem -> Relay -> Tally | `"Hello there"`                                                | program/preview change. pg and pv are program and preview source, each representing an int from 1 to 64          
+| `2` | PONG                  | Tally -> Relay -> Atem | `"General Kenobi"`                                             | Atem may send this to tally to check if its still listening                                                      |
+| `4` | PROGRAM CHANGE        | Atem -> Relay -> Tally | `{"pg": int, "pv": int}`                                       | Tally must respond to PING event with PONG event to inform that it's still listening                             |
+| `5` | NEW TALLY CONNECTED   | Relay -> Atem          | `"New tally connected"`                                        | Sent to atem when a new tally connects                                                                           |
+| `6` | CHANGE BRIGHTNESS     | Atem -> Relay -> Tally | `{"b": int}`                                                   | Brightness is an int from 0 to 255, the higher the brighter                                                      |
+| `7` | TALLY DISCONNECTED    | Relay -> Atem          | `""`                                                           | Sent to atem when tally disconnects                                                                              |
+| `8` | ATEM DISCONNECTED     | Relay -> Tally         | `""`                                                           | Sent to tally when atem disconnects                                                                              |
+| `9` | STATUS CHECK          | ATEM -> Relay -> Tally | `""`                                                           | Atem sends this to obtain Tally Lights status info                                                               |
+| `9` | STATUS CHECK RESPONSE | Tally -> Relay -> ATEM | `"{"bV": int, "n": string, b": int, "c": int, "s": string}"`   | Sent by tally, bW is battery voltage, b is brightness, c is color, s wifi name, n is tally name |
 
 When connecting to `/atem`, you must include `room-id` header with Room ID 
 there can only be 1 client connected to `/atem` per Room ID.

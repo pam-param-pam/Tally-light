@@ -1,3 +1,4 @@
 /output/
 /relay/db.sqlite3
 /transmiter/listener.py
+/transmiter/atem.py

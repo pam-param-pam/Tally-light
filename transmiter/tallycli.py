@@ -5,21 +5,11 @@ import threading
 import PyATEMMax
 import websocket
 import json
-
-from colorama import init
+from colorama import init, Fore
 from websocket import WebSocketConnectionClosedException
-init()
-from colorama import Fore, Back, Style
 
-"""
-op_codes:
-1 - authentication/identify, sent from tally/atem -> relay
-2 - PING, sent from atem -> relay -> tally
-3 - PONG, sent from tally -> relay -> atem
-4 - program change, sent from atem -> relay -> tally
-5 - new tally connected, sent from relay -> atem
-6 - change brightness, sent from atem -> relay -> tally
-"""
+init()
+
 LED_COLORS = {
     0: "OFF",
     1: "RED",
@@ -59,7 +49,7 @@ while True:
         break
 
 while True:
-    room_id = input(f"{Fore.MAGENTA}Please enter room_id: {Fore.LIGHTGREEN_EX}")
+    room_id = input(f"{Fore.MAGENTA}Please enter Room ID: {Fore.LIGHTGREEN_EX}")
     if 4 > len(room_id) > 16:
         print(f"{Fore.RED}Room ID must be between 4 and 16 characters")
     else:
@@ -79,7 +69,7 @@ print(f"{Fore.LIGHTBLUE_EX}===Connecting to ATEM SWITCHER(timeout=3)===")
 switcher.waitForConnection(timeout=3)
 if not switcher.connected:
     print(f"{Fore.RED}ERROR:  CAN'T CONNECT TO ATEM SWITCHER!!!")
-    print(f"{Fore.LIGHTRED_EX}Restart program with a correct ATEM IP, make sure the ATEM is in the same network as this computer.")
+    print(f"{Fore.LIGHTRED_EX}Restart program with a correct ATEM IP, make sure:\n1) Atem is turned ON.\n2) ATEM is in the same network as this computer.\n3) Anti virus is not blocking this program's network access.")
     sys.exit(0)
 else:
     print(f"{Fore.GREEN}Connected to Atem Switcher!")
@@ -113,10 +103,10 @@ def on_message(ws, message):
     if op_code == 5:  # New tally connected OP CODE
         print(f"{Fore.LIGHTBLUE_EX}Tally connected: tally_number: {tally_number}")
         send_websocket_message(json.dumps({"op": 4, "t": 0, "d": {"pg": last_program, "pv": last_preview}}))
-    elif op_code == 3:
-        print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has disconnected from the relay server, reason unknown!")
+    elif op_code == 2:  # PING
+        print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has responded to PING with a PONG")
     elif op_code == 7:  # Tally disconnected
-        print(f"{Fore.LIGHTRED_EX}Tally disconnected: tally_number: {tally_number}")
+        print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has disconnected from the relay server, reason unknown!")
     elif op_code == 9:  # Status check response
         try:
             color = LED_COLORS[json_message['d']['c']]
@@ -140,6 +130,7 @@ def on_close(ws, close_status_code, close_msg):
 
 
 def on_open(ws):
+    print(f"{Fore.GREEN}===CONNECTED TO WEBSOCKET===")
     send_websocket_message(json.dumps({"op": 4, "t": 0, "d": {"pg": last_program, "pv": last_preview}}))
     # Start threads
     tally_thread = threading.Thread(target=handle_tally_updates)
