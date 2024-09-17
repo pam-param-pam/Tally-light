@@ -39,11 +39,20 @@ jobs:
           cd relay
 
           # Create or update the .env file with the DJANGO_SECRET_KEY
-          echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" > .env
-          echo "DEBUG=false" > .env
+          echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
+          echo "DEBUG=false" >> .env
 
+          # Check if virtual environment exists; create if it doesn't
+          if [ ! -d "venv" ]; then
+            echo "Virtual environment not found, creating one."
+            python3 -m venv venv
+          fi
+          
           # Activate virtual environment
           source venv/bin/activate
+          
+          # Upgrade pip to avoid potential issues
+          pip install --upgrade pip
           
           # Install required packages
           pip install -r requirements.txt
