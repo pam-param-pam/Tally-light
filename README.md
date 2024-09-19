@@ -40,6 +40,7 @@ Different OP codes mean different events:
 
 | op  | Event                 | Type                   | Data payload                                                   | Description                                                                                                      |
 |:----|:----------------------|:-----------------------|:---------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------|
+| `1` | IDENTIFY              | Tally -> Relay         | `{"rId": int}`                                               | must include Room ID, must be sent within 5 seconds of connecting to relay                                       |
 | `2` | PING                  | Atem -> Relay -> Tally | `"Hello there"`                                                | program/preview change. pg and pv are program and preview source, each representing an int from 1 to 64          
 | `2` | PONG                  | Tally -> Relay -> Atem | `"General Kenobi"`                                             | Atem may send this to tally to check if its still listening                                                      |
 | `4` | PROGRAM CHANGE        | Atem -> Relay -> Tally | `{"pg": int, "pv": int}`                                       | Tally must respond to PING event with PONG event to inform that it's still listening                             |

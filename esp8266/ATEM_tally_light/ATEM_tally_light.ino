@@ -28,7 +28,7 @@
 #endif
 #define LED_BUILTIN2 16
 
-int BUTTON_PIN = 4;  //D6    
+int BUTTON_PIN = 4;  //D6
 
 
 //Define LED colors
@@ -76,6 +76,7 @@ struct Settings {
     bool useRelayServer;
     char relayWsHost[64] = "";
     char relayWsPath[32] = "";
+    char relayRoomID[16] = "";
     uint16_t relayWsPort;
     char tallyName[32] = "";
     uint8_t tallyNumber;
@@ -90,19 +91,22 @@ struct Settings {
 Settings settings;
 
 bool firstRun = true;
-
+uint8_t currentLedColor;
 
 //Vars for battery loop that monitors battery voltage
+unsigned long batteryLoopStartTime = 0;
 unsigned long batteryElapsedTime = 0;
-unsigned long baterryStartTime = 0;  
+unsigned long baterryStartTime = 0;
 bool betteryLedState = false;
+int rawBatteryRead;
 double uBatt = 0;
 char buffer[3];
+unsigned int batteryLoopInterval = 500;
 
 //Vars for button loop that monitors for push button change to enable/disable WIFI station mode for tally setup site
-int buttonState = LOW;      
-int buttonReading;           
-int buttonPrevious = buttonState;   
+int buttonState = LOW;
+int buttonReading;
+int buttonPrevious = buttonState;
 
 
 
@@ -111,32 +115,46 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
         case WStype_DISCONNECTED:
             Serial.printf("[WSc] Disconnected!\n");
+            setLedColor(LED_PINK);
             break;
-        case WStype_CONNECTED: 
+        case WStype_CONNECTED:  {
             Serial.printf("[WSc] Connected to url: %s\n",  payload);
-            // webSocket.sendTXT("Connected");
+            Serial.println("Sending identify EVENT");
+
+            JsonDocument doc;
+            doc["op"] = 1; // test connection opcode(from tally)
+            doc["t"] = settings.tallyNumber + 1;
+            doc["d"]["rId"] = settings.relayRoomID;
+            String jsonString;
+            serializeJson(doc, jsonString);
+            webSocket.sendTXT(jsonString);
             break;
+        }
+        case WStype_PING:
+            Serial.println("[WSc] got PING\n");
+            break;
+
+        case WStype_PONG:
+            Serial.println("[WSc] got PONG");
+            break;
+
         case WStype_TEXT: {
             Serial.printf("[WSc] got text: %s\n", payload);
 
             StaticJsonDocument<200> doc;
             DeserializationError error = deserializeJson(doc, payload, length);
-            if (error) { 
+            if (error) {
               Serial.println("Coulnd't parse json:");
               return;
             }
             uint8_t t_code = doc["t"];
             uint8_t op_code = doc["op"];
 
-            if (t_code != settings.tallyNumber + 1 && t_code != 0) {
-              Serial.println("Command not send to us!");
-              return;
-            }
-            if (op_code == 1) { // program/preview change
+            if (op_code == 4) { // program/preview change
               setLedColor(LED_OFF);
 
               uint8_t preview = doc["d"]["pv"];
-              if (preview == settings.tallyNumber + 1) { 
+              if (preview == settings.tallyNumber + 1) {
                 setLedColor(LED_GREEN);
                 Serial.println("Set green");
 
@@ -149,43 +167,69 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
               }
 
-            } 
-            else if (op_code == 2) { //test connection, we need to respond!
+            }
+            else if (op_code == 2) { //PING, we need to respong with PONG(3)
+              Serial.printf("[WSc] got PING EVENT");
+
               JsonDocument doc;
-              doc["op"] = 3; // test connection opcode(from tally)
+              doc["op"] = 2; // pong opcode(from tally)
               doc["t"] = settings.tallyNumber + 1;
               doc["d"] = "General Kenobi";
               String jsonString;
               serializeJson(doc, jsonString);
               webSocket.sendTXT(jsonString);
-            } else if (op_code == 5) { //change brightness
+
+            } else if (op_code == 6) { //change brightness EVENT
+              Serial.printf("[WSc] got change brightness EVENT");
+
               int brightness = doc["d"];
               settings.ledBrightness = brightness;
+              EEPROM.put(0, settings);
+              EEPROM.commit();
+              setLedColor(currentLedColor);
+            }
+            else if (op_code == 8) { //atem disconnect event
+              Serial.printf("[WSc] ATEM disconnected");
+
+              setLedColor(LED_YELLOW);
+            }
+            else if (op_code == 9) {
+              Serial.printf("[WSc] status check");
+              rawBatteryRead = analogRead(A0);
+              uBatt = (double) rawBatteryRead / 1023 * 4.2;
+
+              JsonDocument doc;
+              doc["op"] = 9; // test connection opcode(from tally)
+              doc["t"] = settings.tallyNumber + 1;
+              doc["d"]["bV"] = uBatt;
+              doc["d"]["b"] = settings.ledBrightness;
+              doc["d"]["n"] = settings.tallyName;
+              doc["d"]["c"] = currentLedColor;
+              doc["d"]["s"] = WiFi.SSID();
+
+              String jsonString;
+              serializeJson(doc, jsonString);
+              webSocket.sendTXT(jsonString);
 
             }
-            
-            
-            
+
             break;
         }
-        case WStype_BIN:
-            Serial.printf("[WSc] got binary length: %u\n", length);
-            hexdump(payload, length);
-            break;
     }
 
 }
 //Perform initial setup on power on
 void setup() {
-    
+
     //Start Serial
     Serial.begin(115200);
     Serial.println("########################");
     Serial.println("Serial started");
+    Serial.setDebugOutput(true);
 
-    //Init builtin led pins 
-    pinMode(LED_BUILTIN, OUTPUT); 
-    pinMode(LED_BUILTIN2, OUTPUT); 
+    //Init builtin led pins
+    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(LED_BUILTIN2, OUTPUT);
 
     // Initialize the button.
     pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -199,7 +243,7 @@ void setup() {
     digitalWrite(LED_BUILTIN, HIGH);
     digitalWrite(LED_BUILTIN2, HIGH);
 
-   
+
     //Setup current-measuring pin
     pinMode(A0, INPUT);
 
@@ -217,7 +261,7 @@ void setup() {
 
 
     //Put WiFi into station mode and make it connect to saved network
-    WiFi.mode(WIFI_STA); 
+    WiFi.mode(WIFI_STA);
     WiFi.hostname((String)settings.tallyName + " setup");
     WiFi.setAutoReconnect(true);
     WiFi.begin();
@@ -275,7 +319,7 @@ void loop() {
                 Serial.println("Connected to switcher");
             }
             break;
-      
+
         case STATE_CONNECTING_TO_RELAY: {
           if (firstRun) {
             if (!webSocket.isConnected())
@@ -284,7 +328,13 @@ void loop() {
                 Serial.println((String)"Switcher Port:         " + settings.relayWsPort);
                 Serial.println((String)"Switcher path:         " + settings.relayWsPath);
 
+                //seting identify headers
+                // String extraHeaders = String("tally-no: ") + String(settings.tallyNumber + 1) + "\r\n";
+                // extraHeaders += String("room-id: ") + String(settings.relayRoomID);
                 webSocket.beginSSL(settings.relayWsHost, settings.relayWsPort, settings.relayWsPath);
+                // webSocket.setExtraHeaders(extraHeaders.c_str()); // Add the extra headers
+
+                // webSocket.begin(settings.relayWsHost, settings.relayWsPort, settings.relayWsPath);
                 webSocket.onEvent(webSocketEvent);
                 firstRun = false;
           }
@@ -297,16 +347,19 @@ void loop() {
         }
 
         case STATE_RELAY_RUNNING: {
-            if (webSocket.isConnected()) {
-                webSocket.loop();
-            } else {
-                changeState(STATE_CONNECTING_TO_RELAY);
-            }
+            webSocket.loop();
+            // if (webSocket.isConnected()) {
+            //     webSocket.loop();
+            // } else {
+            //     changeState(STATE_CONNECTING_TO_RELAY);
+            // }
+
             break;
 
         }
 
         case SOFT_AP_ON:
+            server.handleClient();
             atemSwitcher.runLoop();
             break;
 
@@ -315,22 +368,22 @@ void loop() {
             atemSwitcher.runLoop();
 
             int tallySources = atemSwitcher.getTallyByIndexSources();
-            
+
             //Set LED color accordingly
             int color = getLedColor(settings.tallyNumber);
             setLedColor(color);
-           
+
             //Switch state if ATEM connection is lost...
-            if (!atemSwitcher.isConnected()) { 
+            if (!atemSwitcher.isConnected()) {
                 Serial.println("------------------------");
                 Serial.println("Connection to Switcher lost...");
                 changeState(STATE_CONNECTING_TO_SWITCHER);
 
             }
-            
+
             break;
         }
-    } 
+    }
 
     //Switch state if WiFi connection is lost...
     if (WiFi.status() != WL_CONNECTED && state != STATE_CONNECTING_TO_WIFI && state != SOFT_AP_ON) {
@@ -342,8 +395,6 @@ void loop() {
         atemSwitcher.connect();
     }
 
-    //Handle web interface
-    server.handleClient();
 
     //monitor battery and button
     // Serial.println("=LOOP=");
@@ -376,11 +427,11 @@ void changeState(uint8_t stateToChangeTo) {
             break;
         case STATE_SWITCHER_RUNNING:
             state = STATE_SWITCHER_RUNNING;
-            setLedColor(LED_ORANGE);
+            setLedColor(LED_YELLOW);
             break;
         case STATE_RELAY_RUNNING:
             state = STATE_RELAY_RUNNING;
-            setLedColor(LED_ORANGE);
+            setLedColor(LED_YELLOW);
             break;
         case SOFT_AP_ON:
             state = SOFT_AP_ON;
@@ -392,6 +443,7 @@ void changeState(uint8_t stateToChangeTo) {
 }
 
 void setLedColor(uint8_t color) {
+    currentLedColor = color;
     setLED(color, PIN_RED1, PIN_GREEN1, PIN_BLUE1);
 }
 
@@ -475,12 +527,12 @@ int getLedColor(int tallyNo) {
 
     int tallyState = getTallyState(tallyNo);
 
-    if (tallyState == TALLY_FLAG_PROGRAM) {   //if tally live        
+    if (tallyState == TALLY_FLAG_PROGRAM) {   //if tally live
         return LED_RED;
-    } 
+    }
     else if (tallyState == TALLY_FLAG_PREVIEW) { //if tally preview
-        return LED_GREEN;          
-    } else {                                            
+        return LED_GREEN;
+    } else {
         return LED_OFF;   //if tally is neither
     }
 }
@@ -488,7 +540,103 @@ int getLedColor(int tallyNo) {
 
 //Serve setup web page to client, by sending HTML with the correct variables
 void handleRoot() {
-    String html = "<!DOCTYPE html><html><head><meta charset=\"ASCII\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"><title>Tally Light setup</title></head><script>function switchIpField(e){console.log(\"switch\");console.log(e);var target=e.srcElement||e.target;var maxLength=parseInt(target.attributes[\"maxlength\"].value,10);var myLength=target.value.length;if(myLength>=maxLength){var next=target.nextElementSibling;if(next!=null){if(next.className.includes(\"IP\")){next.focus();}}}else if(myLength==0){var previous=target.previousElementSibling;if(previous!=null){if(previous.className.includes(\"IP\")){previous.focus();}}}}function ipFieldFocus(e){console.log(\"focus\");console.log(e);var target=e.srcElement||e.target;target.select();}function load(){var containers=document.getElementsByClassName(\"IP\");for(var i=0;i<containers.length;i++){var container=containers[i];container.oninput=switchIpField;container.onfocus=ipFieldFocus;}containers=document.getElementsByClassName(\"tIP\");for(var i=0;i<containers.length;i++){var container=containers[i];container.oninput=switchIpField;container.onfocus=ipFieldFocus;}toggleStaticIPFields();toggleRelayServerFields();}function toggleStaticIPFields(){var enabled=document.getElementById(\"staticIP\").checked;document.getElementById(\"staticIPHidden\").disabled=enabled;var staticIpFields=document.getElementsByClassName('tIP');for(var i=0;i<staticIpFields.length;i++){staticIpFields[i].disabled=!enabled;}}function toggleRelayServerFields(){var enabled=document.getElementById(\"relayServer\").checked;document.getElementById(\"relayServerHidden\").disabled=enabled;var relayServerHost=document.getElementById('relayServerHost');relayServerHost.disabled=!enabled;var relayServerPath=document.getElementById('relayServerPath');relayServerPath.disabled=!enabled;var relayServerPort=document.getElementById('relayServerPort');relayServerPort.disabled=!enabled;var aIPFields=document.getElementsByClassName('IP');for(var i=0;i<aIPFields.length;i++){aIPFields[i].disabled=enabled;}} </script><style>a{color:#0F79E0}</style><body style=\"font-family:Verdana;white-space:nowrap;\" onload=\"load()\"><table cellpadding=\"2\" style=\"width:100%\"><tr bgcolor=\"#777777\" style=\"color:#ffffff;font-size:.8em;\"><td colspan=\"3\"><h1>&nbsp;" + (String)DISPLAY_NAME + " setup</h1><h2>&nbsp;Status:</h2></td></tr><tr><td><br></td><td></td><td style=\"width:100%;\"></td></tr><tr><td>Connection Status:</td><td colspan=\"2\">";
+String html = String("<!DOCTYPE html>")
+    + "<html>"
+    + "<head>"
+    + "<meta charset=\"ASCII\">"
+    + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">"
+    + "<title>Tally Light setup</title>"
+    + "</head>"
+    + "<script>"
+    + "function switchIpField(e) {"
+    + "    console.log(\"switch\");"
+    + "    console.log(e);"
+    + "    var target = e.srcElement || e.target;"
+    + "    var maxLength = parseInt(target.attributes[\"maxlength\"].value, 10);"
+    + "    var myLength = target.value.length;"
+    + "    if (myLength >= maxLength) {"
+    + "        var next = target.nextElementSibling;"
+    + "        if (next != null) {"
+    + "            if (next.className.includes(\"IP\")) {"
+    + "                next.focus();"
+    + "            }"
+    + "        }"
+    + "    } else if (myLength == 0) {"
+    + "        var previous = target.previousElementSibling;"
+    + "        if (previous != null) {"
+    + "            if (previous.className.includes(\"IP\")) {"
+    + "                previous.focus();"
+    + "            }"
+    + "        }"
+    + "    }"
+    + "}"
+    + "function ipFieldFocus(e) {"
+    + "    console.log(\"focus\");"
+    + "    console.log(e);"
+    + "    var target = e.srcElement || e.target;"
+    + "    target.select();"
+    + "}"
+    + "function load() {"
+    + "    var containers = document.getElementsByClassName(\"IP\");"
+    + "    for (var i = 0; i < containers.length; i++) {"
+    + "        var container = containers[i];"
+    + "        container.oninput = switchIpField;"
+    + "        container.onfocus = ipFieldFocus;"
+    + "    }"
+    + "    containers = document.getElementsByClassName(\"tIP\");"
+    + "    for (var i = 0; i < containers.length; i++) {"
+    + "        var container = containers[i];"
+    + "        container.oninput = switchIpField;"
+    + "        container.onfocus = ipFieldFocus;"
+    + "    }"
+    + "    toggleStaticIPFields();"
+    + "    toggleRelayServerFields();"
+    + "}"
+    + "function toggleStaticIPFields() {"
+    + "    var enabled = document.getElementById(\"staticIP\").checked;"
+    + "    document.getElementById(\"staticIPHidden\").disabled = enabled;"
+    + "    var staticIpFields = document.getElementsByClassName('tIP');"
+    + "    for (var i = 0; i < staticIpFields.length; i++) {"
+    + "        staticIpFields[i].disabled = !enabled;"
+    + "    }"
+    + "}"
+    + "function toggleRelayServerFields() {"
+    + "    var enabled = document.getElementById(\"relayServer\").checked;"
+    + "    document.getElementById(\"relayServerHidden\").disabled = enabled;"
+    + "    var relayServerHost = document.getElementById('relayServerHost');"
+    + "    relayServerHost.disabled = !enabled;"
+    + "    var relayServerPath = document.getElementById('relayServerPath');"
+    + "    relayServerPath.disabled = !enabled;"
+    + "    var relayServerPort = document.getElementById('relayServerPort');"
+    + "    relayServerPort.disabled = !enabled;"
+    + "    var relayRoomID = document.getElementById('relayRoomID');"
+    + "    relayRoomID.disabled = !enabled;"
+    + "    var aIPFields = document.getElementsByClassName('IP');"
+    + "    for (var i = 0; i < aIPFields.length; i++) {"
+    + "        aIPFields[i].disabled = enabled;"
+    + "    }"
+    + "}"
+    + "</script>"
+    + "<style>"
+    + "a { color: #0F79E0; }"
+    + "</style>"
+    + "<body style=\"font-family:Verdana;white-space:nowrap;\" onload=\"load()\">"
+    + "<table cellpadding=\"2\" style=\"width:100%\">"
+    + "<tr bgcolor=\"#777777\" style=\"color:#ffffff;font-size:.8em;\">"
+    + "    <td colspan=\"3\">"
+    + "        <h1>&nbsp;" + (String) DISPLAY_NAME + " setup</h1>"
+    + "        <h2>&nbsp;Status:</h2>"
+    + "    </td>"
+    + "</tr>"
+    + "<tr>"
+    + "    <td><br></td>"
+    + "    <td></td>"
+    + "    <td style=\"width:100%;\"></td>"
+    + "</tr>"
+    + "<tr>"
+    + "    <td>Connection Status:</td>"
+    + "    <td colspan=\"2\">";
+
     switch (WiFi.status()) {
         case WL_CONNECTED:
             html += "Connected to network";
@@ -500,10 +648,10 @@ void handleRoot() {
             html += "Invalid password";
             break;
         case WL_IDLE_STATUS:
-            html += "Changing state...";
+            html += "Wifi idle state";
             break;
         case WL_DISCONNECTED:
-            html += "Station mode disabled";
+            html += "Wifi disconnected";
             break;
         case -1:
             html += "Timeout";
@@ -530,8 +678,8 @@ void handleRoot() {
     if (settings.useRelayServer) {
         html += "<tr><td>Relay server status:</td><td colspan=\"2\">";
         if (state == STATE_CONNECTING_TO_RELAY) html += "Trying to connect to relay server...";
-        else if (state  == STATE_RELAY_RUNNING) html += "Connected and running"; 
-        
+        else if (state  == STATE_RELAY_RUNNING) html += "Connected and running";
+
         html += "</td></tr><tr><td>Relay server adress:</td><td colspan=\"2\">";
         html += settings.relayWsHost;
         html += settings.relayWsPath;
@@ -550,7 +698,7 @@ void handleRoot() {
             html += "Disconnected - No response from switcher";
         else
             html += "Disconnected - Waiting for WiFi";
-        
+
         html += "</td></tr><tr><td>ATEM switcher IP:</td><td colspan=\"2\">";
         html += (String)settings.switcherIP[0] + '.' + settings.switcherIP[1] + '.' + settings.switcherIP[2] + '.' + settings.switcherIP[3];
         html += "</td></tr><tr><td><br></td></tr>";
@@ -609,6 +757,13 @@ void handleRoot() {
     html += "/></td></tr><tr><td>Relay WebSocket Port: </td><td><input id=\"relayServerPort\" type=\"number\" size=\"5\" min=\"1\" max=\"65535\" name=\"relayServerPort\" value=\"";
     html += settings.relayWsPort;
     html += "\"";
+
+    if (!settings.useRelayServer)
+        html += " disabled";
+    html += "/></td></tr><tr><td>Relay Room ID: </td><td><input id=\"relayRoomID\" type=\"text\" maxlength=\"16\" minlength=\"3\" name=\"relayRoomID\" value=\"";
+    html += settings.relayRoomID;
+    html += "\"";
+
     if (!settings.useRelayServer)
         html += " disabled";
     html += "/></td></tr><tr><td><br></td></tr><tr><td>ATEM switcher IP: </td><td><input class=\"IP\" type=\"text\" size=\"3\" maxlength=\"3\" name=\"aIP1\" pattern=\"\\d{0,3}\" value=\"";
@@ -634,7 +789,7 @@ void handleRoot() {
     html += "/></td></tr><tr><td><br></td></tr><tr><td/><td style=\"float: right;\"><input type=\"submit\" value=\"Save Changes\"/></td></tr></form><tr bgcolor=\"#cccccc\" style=\"font-size: .8em;\"><td colspan=\"3\"><p>&nbsp;&copy; Modified by <a href=\"https://github.com/pam-param-pam/\">Pam</a>, made by <a href=\"https://aronhetlam.github.io/\">Aron N. Het Lam</a></p><p>&nbsp;Based on ATEM libraries for Arduino by <a href=\"https://www.skaarhoj.com/\">SKAARHOJ</a></p></td></tr></table></body></html>";
     server.send(200, "text/html", html);
 
-    
+
 
 }
 
@@ -705,6 +860,8 @@ void handleSave() {
                 val.toCharArray(settings.relayWsPath, (uint8_t)32);
             } else if (var == "relayServerPort") {
                 settings.relayWsPort = val.toInt();
+            } else if (var == "relayRoomID") {
+                val.toCharArray(settings.relayRoomID, (uint8_t)16);
             }
         }
 
@@ -759,15 +916,15 @@ void buttonLoop() {
     // Serial.println(buttonReading);
 
     if (buttonReading != buttonPrevious) {
-      if (buttonReading == HIGH) {
+      if (buttonReading == LOW) {
         webSocket.disconnect();
         changeState(SOFT_AP_ON);
         Serial.println("ACCESS POINT IS ON");
-        WiFi.mode(WIFI_AP_STA); 
+        WiFi.mode(WIFI_AP_STA);
         WiFi.softAP((String)settings.tallyName + " setup");
       }
       else {
-        WiFi.mode(WIFI_STA); 
+        WiFi.mode(WIFI_STA);
         Serial.println("ACCESS POINT IS OFF");
         changeState(STATE_CONNECTING_TO_WIFI);
       }
@@ -778,25 +935,24 @@ void buttonLoop() {
 
 
 void batteryLoop() {
-  unsigned long batteryLoopStartTime = millis();
+  batteryLoopStartTime = millis();
   batteryElapsedTime = batteryLoopStartTime - baterryStartTime;
-  int raw = analogRead(A0);
-  uBatt = (double)raw / 1023 * 4.2;
-  if (uBatt <= 3.600) {
-    unsigned int interval = 500;
-    if (uBatt <= 3.300) interval = 100;
-  
-    if ((batteryElapsedTime >= interval)) { 
-      betteryLedState = (betteryLedState == HIGH) ? LOW : HIGH;
 
+
+  if ((batteryElapsedTime >= batteryLoopInterval)) {
+      rawBatteryRead = analogRead(A0);
+      uBatt = (double) rawBatteryRead / 1023 * 4.2;
+      // if (uBatt <= 3.400) {
+      //   batteryLoopInterval = 250;
+      // }
+      // if (uBatt <= 3.350) {
+      //   batteryLoopInterval = 100;
+      // }
+      betteryLedState = (betteryLedState == HIGH) ? LOW : HIGH;
       digitalWrite(LED_BUILTIN2, betteryLedState);
       baterryStartTime = batteryLoopStartTime;
-    }
-   
-  }                  
-  Serial.println("uBatt");
+  }
 
-  Serial.println(uBatt);
 
   // if(uBatt <= 3.499 && uBatt > 0.1) {
   //     Serial.println("ENTERING DEEP SLEEP");
@@ -805,6 +961,6 @@ void batteryLoop() {
   //     ESP.deepSleep(0, WAKE_NO_RFCAL);
   // }
 
-       
+
 }
 

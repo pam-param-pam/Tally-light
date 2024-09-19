@@ -1,4 +1,7 @@
 import json
+import threading
+from datetime import datetime
+from json import JSONDecodeError
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
@@ -15,27 +18,20 @@ class TallyConsumer(WebsocketConsumer):
 
     def connect(self):
         print("opening tally consumer")
-        try:
-            self.room_id = dict(self.scope['headers'])[b'room-id'].decode('utf-8')
-            self.tally_number = int(dict(self.scope['headers'])[b'tally-no'].decode('utf-8'))
+        self.accept()
+        # Start a timer for 5 seconds to close the connection if not authenticated
+        self.auth_timer = threading.Timer(5, self.close_if_not_authenticated)
+        self.auth_timer.start()
 
-            async_to_sync(self.channel_layer.group_add)("tally", self.channel_name)
-
-            # Send EVENT informing ATEM of a new tally connected
-            async_to_sync(self.channel_layer.group_send)("atem", {
-                "type": "send_event_to_atem",
-                "room_id": self.room_id,
-                "event_data": json.dumps({"op": 5, "t": self.tally_number, "d": "New tally connected!"})
-            })
-            self.authenticated = True
-            print(f"TALLY AUTH successful tally_number={self.tally_number} room_id={self.room_id}")
-            self.accept()
-        except (ValueError, KeyError):
-            print("tally close 1")
-            self.close()
+    def close_if_not_authenticated(self):
+        # This function is called after 15 seconds after accepting the connection
+        if not self.authenticated:
+            print("close tally 1")
+            self.close(code=1000, reason="No auth provided")
 
     def disconnect(self, close_code):
         print("tally disconnect")
+        print(datetime.now())
         print(close_code)
         if not self.authenticated:
             return
@@ -48,14 +44,49 @@ class TallyConsumer(WebsocketConsumer):
 
     def receive(self, text_data=None, bytes_data=None):
         print(f"tally received {text_data}")
+        try:
+            message = json.loads(text_data)
+            op_code = message["op"]
+            tally = message["t"]
+            data = message["d"]
 
-        async_to_sync(self.channel_layer.group_send)("atem", {
-            "type": "send_event_to_atem",
-            "room_id": self.room_id,
-            "event_data": text_data
-        })
+            # first message must be auth room ID
+            if not self.authenticated and op_code != 1:
+                print("close tally 2")
+                self.close(3000)
+
+            if op_code == 1:  # IDENTIFY EVENT, sent from tally to relay server
+                self.tally_number = tally
+                self.room_id = data['rId']
+                async_to_sync(self.channel_layer.group_add)("tally", self.channel_name)
+
+                # Send EVENT informing ATEM of a new tally connected
+                async_to_sync(self.channel_layer.group_send)("atem", {
+                    "type": "send_event_to_atem",
+                    "room_id": self.room_id,
+                    "event_data": json.dumps({"op": 5, "t": self.tally_number, "d": "New tally connected!"})
+                })
+                self.authenticated = True
+                print(f"TALLY AUTH successful tally_number={self.tally_number} room_id={self.room_id}")
+
+            # forward any other event to atem
+            else:
+                async_to_sync(self.channel_layer.group_send)("atem", {
+                    "type": "send_event_to_atem",
+                    "room_id": self.room_id,
+                    "event_data": text_data
+                })
+
+        except (KeyError, JSONDecodeError):
+            # first message must be a valid IDENTIFY event
+            if not self.authenticated:
+                print("close tally 3")
+                self.close(3000)
 
     def send_event_to_tally(self, event):
+        print("send_event_to_tally")
+        print(event["room_id"])
+        print(self.room_id)
         if event["room_id"] != self.room_id:
             return
         event = json.loads(event["event_data"])

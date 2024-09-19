@@ -96,28 +96,35 @@ def handle_tally_updates():
 
 # Initialize WebSocket connection
 def on_message(ws, message):
-    json_message = json.loads(message)
+    try:
+        json_message = json.loads(message)
 
-    op_code = json_message['op']
-    tally_number = json_message['t']
-    if op_code == 5:  # New tally connected OP CODE
-        print(f"{Fore.LIGHTBLUE_EX}Tally connected: tally_number: {tally_number}")
-        send_websocket_message(json.dumps({"op": 4, "t": 0, "d": {"pg": last_program, "pv": last_preview}}))
-    elif op_code == 2:  # PING
-        print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has responded to PING with a PONG")
-    elif op_code == 7:  # Tally disconnected
-        print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has disconnected from the relay server, reason unknown!")
-    elif op_code == 9:  # Status check response
-        try:
-            color = LED_COLORS[json_message['d']['c']]
-        except (KeyError, ValueError):
-            color = "Unknown"
-        print(f"{Fore.LIGHTBLUE_EX}Tally {tally_number} status:")
-        print(f"{Fore.MAGENTA}Battery voltage: {Fore.LIGHTMAGENTA_EX}{json_message['d']['bV']}")
-        print(f"{Fore.MAGENTA}Brightness: {Fore.LIGHTMAGENTA_EX}{json_message['d']['b']}")
-        print(f"{Fore.MAGENTA}Tally name: {Fore.LIGHTMAGENTA_EX}{json_message['d']['n']}")
-        print(f"{Fore.MAGENTA}Current color: {Fore.LIGHTMAGENTA_EX}{color}")
-        print(f"{Fore.MAGENTA}Wifi name: {Fore.LIGHTMAGENTA_EX}{json_message['d']['s']}")
+        op_code = json_message['op']
+        tally_number = json_message['t']
+        if op_code == 5:  # New tally connected OP CODE
+            print(f"{Fore.LIGHTBLUE_EX}Tally connected: tally_number: {tally_number}")
+            send_websocket_message(json.dumps({"op": 4, "t": 0, "d": {"pg": last_program, "pv": last_preview}}))
+        elif op_code == 2:  # PING
+            print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has responded to PING with a PONG")
+        elif op_code == 7:  # Tally disconnected
+            print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has disconnected from the relay server, reason unknown!")
+        elif op_code == 9:  # Status check response
+            try:
+                color = LED_COLORS[json_message['d']['c']]
+            except (KeyError, ValueError):
+                color = "Unknown"
+            print(f"{Fore.LIGHTBLUE_EX}Tally {tally_number} status:")
+            print(f"{Fore.MAGENTA}Battery voltage: {Fore.LIGHTMAGENTA_EX}{json_message['d']['bV']}")
+            print(f"{Fore.MAGENTA}Brightness: {Fore.LIGHTMAGENTA_EX}{json_message['d']['b']}")
+            print(f"{Fore.MAGENTA}Tally name: {Fore.LIGHTMAGENTA_EX}{json_message['d']['n']}")
+            print(f"{Fore.MAGENTA}Current color: {Fore.LIGHTMAGENTA_EX}{color}")
+            print(f"{Fore.MAGENTA}Wifi name: {Fore.LIGHTMAGENTA_EX}{json_message['d']['s']}")
+        else:
+            print(f"{Fore.LIGHTRED_EX}Couldn't parse message: '{message}'")
+
+    except (KeyError, ValueError):
+        print(f"{Fore.LIGHTRED_EX}Couldn't parse message: '{message}'")
+
 
 def on_error(ws, error):
     if "Handshake status 403 Access denied" in str(error):
