@@ -1,15 +1,19 @@
 import re
+import socket
 import sys
 import time
 import threading
+from datetime import datetime
+
 import PyATEMMax
 import websocket
 import json
 from colorama import init, Fore
 from websocket import WebSocketConnectionClosedException
 
-init()
 
+init()
+ATEM_MAC_ADDRESS = "7c:2e:0d:14:2f:6d"
 LED_COLORS = {
     0: "OFF",
     1: "RED",
@@ -20,6 +24,27 @@ LED_COLORS = {
     6: "WHITE",
     7: "ORANGE"
 }
+def scan_local_network(ip_range):
+    from scapy.all import ARP, Ether, srp
+    print(f"{Fore.LIGHTMAGENTA_EX}This may take a while...")
+    arp = ARP(pdst=ip_range)
+    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+    packet = ether/arp
+
+    result = srp(packet, timeout=3, verbose=0)[0]
+
+    devices = []
+    for sent, received in result:
+        # Try to get the hostname (device name)
+        try:
+            name = socket.gethostbyaddr(received.psrc)[0]  # Reverse DNS lookup for hostname
+        except socket.herror:
+            name = "Unknown"  # Hostname could not be resolved
+        devices.append({'ip': received.psrc, 'mac': received.hwsrc, 'name': name})
+
+    return devices
+
+
 while True:
     websocket_address = input(f"{Fore.MAGENTA}Please enter relay websocket address: {Fore.LIGHTGREEN_EX}")
     if websocket_address == "skip":
@@ -38,8 +63,27 @@ while True:
 while True:
     atem_ip = input(f"{Fore.MAGENTA}Please enter ATEM IP address: {Fore.LIGHTGREEN_EX}")
     if atem_ip == "skip":
-        atem_ip = "192.168.1.16"
-        break
+        found = False
+        print(f"{Fore.CYAN}Reforming a network scan for ATEM")
+        devices = scan_local_network("192.168.1.1/24")
+        print(f"{Fore.LIGHTGREEN_EX}Devices found:")
+        for index, device in enumerate(devices):
+            mac = device['mac']
+
+            text = f"IP: {device['ip']}, MAC: {mac}, NAME: {device['name']}"
+            if index % 2 == 0:
+                color = Fore.MAGENTA
+            else:
+                color = Fore.LIGHTMAGENTA_EX
+            if mac == ATEM_MAC_ADDRESS:
+                color = Fore.LIGHTGREEN_EX
+                atem_ip = device['ip']
+                found = True
+            print(f"{color}{text}{Fore.RESET}")
+        if found:
+            break
+        else:
+            print(f"{Fore.LIGHTRED_EX}Couldn't find ATEM make sure:\n1) Atem is turned ON.\n2) ATEM is in the same network as this computer.\n3) Anti virus is not blocking this program's network access.")
     atem_ip_pattern = r"^((\d{1,3}\.){3}\d{1,3}|\[[a-fA-F0-9:]+\])(:\d{1,5})?$"
     if not re.match(atem_ip_pattern, atem_ip):
         print(f"{Fore.RED}Atem IP ISN'T VALID")
@@ -83,7 +127,18 @@ def handle_tally_updates():
     global last_program
     global last_preview
 
+    changedState = False
     while True:
+        if changedState:
+            print(f"{Fore.LIGHTGREEN_EX}===CONNECTED TO ATEM===")
+            changedState = False
+        if not switcher.connected:
+            print(f"{Fore.LIGHTRED_EX}===LOST CONNECTION TO ATEM===")
+            print(f"{Fore.LIGHTMAGENTA_EX}Program will not work until connection is reestablished.")
+            print(f"{Fore.BLUE}Attempting to re connect, timeout=infinite.")
+            switcher.waitForConnection()
+            changedState = True
+
         program = switcher.programInput[0].videoSource.value
         preview = switcher.previewInput[0].videoSource.value
         if preview != last_preview or program != last_program:
@@ -102,12 +157,12 @@ def on_message(ws, message):
         op_code = json_message['op']
         tally_number = json_message['t']
         if op_code == 5:  # New tally connected OP CODE
-            print(f"{Fore.LIGHTBLUE_EX}Tally connected: tally_number: {tally_number}")
+            print(f"{Fore.LIGHTMAGENTA_EX}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {Fore.LIGHTBLUE_EX}Tally connected: tally_number: {tally_number}")
             send_websocket_message(json.dumps({"op": 4, "t": 0, "d": {"pg": last_program, "pv": last_preview}}))
         elif op_code == 2:  # PING
             print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has responded to PING with a PONG")
         elif op_code == 7:  # Tally disconnected
-            print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has disconnected from the relay server, reason unknown!")
+            print(f"{Fore.LIGHTMAGENTA_EX}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {Fore.LIGHTRED_EX}Tally number {tally_number} has disconnected from the relay server, reason unknown!")
         elif op_code == 9:  # Status check response
             try:
                 color = LED_COLORS[json_message['d']['c']]
