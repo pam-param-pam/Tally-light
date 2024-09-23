@@ -1,0 +1,23 @@
+name: Start Django Application
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stop-service:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Stop Service on Virtual Machine
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.CI_DEPLOYMENT_HOST }}
+        port: ${{ secrets.CI_DEPLOYMENT_PORT }}
+        username: ${{ secrets.CI_RPI_USERNAME }}
+        key: ${{ secrets.CI_RPI_SSH_KEY }}
+        script: |
+          # Stop the tally-light service
+          sudo systemctl restart tally-light
+          
+          # Optional: Check the status of the service
+          sudo systemctl status tally-light
