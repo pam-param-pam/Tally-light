@@ -1,6 +1,5 @@
 import json
 import threading
-from datetime import datetime
 from json import JSONDecodeError
 
 from asgiref.sync import async_to_sync
@@ -17,7 +16,6 @@ class TallyConsumer(WebsocketConsumer):
         self.room_id = None
 
     def connect(self):
-        print("opening tally consumer")
         self.accept()
         # Start a timer for 5 seconds to close the connection if not authenticated
         self.auth_timer = threading.Timer(5, self.close_if_not_authenticated)
@@ -26,13 +24,9 @@ class TallyConsumer(WebsocketConsumer):
     def close_if_not_authenticated(self):
         # This function is called after 15 seconds after accepting the connection
         if not self.authenticated:
-            print("close tally 1")
-            self.close(code=1000, reason="No auth provided")
+            self.close(code=3000, reason="No auth provided")
 
     def disconnect(self, close_code):
-        print("tally disconnect")
-        print(datetime.now())
-        print(close_code)
         if not self.authenticated:
             return
         async_to_sync(self.channel_layer.group_discard)("tally", self.channel_name)
@@ -43,7 +37,6 @@ class TallyConsumer(WebsocketConsumer):
         })
 
     def receive(self, text_data=None, bytes_data=None):
-        print(f"tally received {text_data}")
         try:
             message = json.loads(text_data)
             op_code = message["op"]
@@ -52,8 +45,7 @@ class TallyConsumer(WebsocketConsumer):
 
             # first message must be auth room ID
             if not self.authenticated and op_code != 1:
-                print("close tally 2")
-                self.close(3000)
+                self.close(code=3000, reason="No auth provided")
 
             if op_code == 1:  # IDENTIFY EVENT, sent from tally to relay server
                 self.tally_number = tally
@@ -67,7 +59,6 @@ class TallyConsumer(WebsocketConsumer):
                     "event_data": json.dumps({"op": 5, "t": self.tally_number, "d": "New tally connected!"})
                 })
                 self.authenticated = True
-                print(f"TALLY AUTH successful tally_number={self.tally_number} room_id={self.room_id}")
 
             # forward any other event to atem
             else:
@@ -80,13 +71,9 @@ class TallyConsumer(WebsocketConsumer):
         except (KeyError, JSONDecodeError):
             # first message must be a valid IDENTIFY event
             if not self.authenticated:
-                print("close tally 3")
-                self.close(3000)
+                self.close(code=3000, reason="No auth provided")
 
     def send_event_to_tally(self, event):
-        print("send_event_to_tally")
-        print(event["room_id"])
-        print(self.room_id)
         if event["room_id"] != self.room_id:
             return
         event = json.loads(event["event_data"])
@@ -103,32 +90,24 @@ class AtemConsumer(WebsocketConsumer):
 
     def connect(self):
         try:
-            print("opening atem")
             self.room_id = dict(self.scope['headers'])[b'room-id'].decode('utf-8')
 
             # allow only 1 atem per room_id
-            print(self.get_consumer_count(self.room_id))
             if self.get_consumer_count(self.room_id) != 0:
-                print("close atem 1")
                 self.close(reason="There is already atem listener connected in this room ID")
             else:
                 self.accept()
                 async_to_sync(self.channel_layer.group_add)("atem", self.channel_name)
                 self.authenticated = True
                 self.increment_consumer_count()
-                print(f"ATEM AUTH successful room_id={self.room_id}")
 
         except (KeyError, ValueError):
-            print("close atem 2")
-
-            self.close()
+            self.close(code=3000, reason="Wrong auth provided")
 
     def disconnect(self, close_code):
-        print("disconnect atem 1")
         async_to_sync(self.channel_layer.group_discard)("atem", self.channel_name)
         if not self.authenticated:
             return
-        print("disconnect atem 2")
         self.decrement_consumer_count()
         async_to_sync(self.channel_layer.group_send)("tally", {
             "type": "send_event_to_tally",
@@ -137,8 +116,6 @@ class AtemConsumer(WebsocketConsumer):
         })
 
     def receive(self, text_data=None, bytes_data=None):
-        print(f"atem received {text_data}")
-
         # forward everything to tally consumer
         async_to_sync(self.channel_layer.group_send)("tally", {
             "type": "send_event_to_tally",
@@ -147,11 +124,8 @@ class AtemConsumer(WebsocketConsumer):
         })
 
     def send_event_to_atem(self, event):
-        print(f"atem received from tally {event}")
         if event["room_id"] != self.room_id:
             return
-        print("sending event to atem")
-        print(event)
         self.send((event["event_data"]))
 
     def increment_consumer_count(self):

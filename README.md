@@ -54,7 +54,13 @@ Different OP codes mean different events:
 When connecting to `/atem`, you must include `room-id` header with Room ID 
 there can only be 1 client connected to `/atem` per Room ID.
 
-
+### Parts used
+ - [Nodemcu v2](https://botland.com.pl/moduly-wifi-esp8266/4450-modul-wifi-esp-12e-nodemcu-v2-4mb-5903351241328.html)
+ - [Li-Pol battery](https://botland.com.pl/akumulatory-li-pol-1s-37v/15613-akumulator-li-pol-akyga-1000mah-1s-37v-zlacze-jst-bec-gniazdo-48x30x7mm-5904422324230.html)
+ - [Li-Pol battery charger](https://botland.com.pl/moduly-ladowania-lipol-usb-micro-usb/16979-ladowarka-li-pol-tp4056-pojedyncza-cela-1s-37v-usb-typ-c-z-zabezpieczeniami--5904422326708.html)- [RGB Led](https://botland.com.pl/diody-led-rgb/1667-dioda-led-5mm-rgb-matowa-wsp-katoda-5-szt-5903351244152.html)
+ - wires
+ - few resistors 10/22/44 ohm for RGB Led
+ - few switch buttons
 ### esp8266 code based on
 
 - [@AronHetLam's Tally Light](https://github.com/AronHetLam/ATEM_tally_light_with_ESP8266)

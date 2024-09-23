@@ -42,25 +42,27 @@
 </head>
 <body>
     <h2>How to Use</h2>
-    <p>Follow these instructions to set up your tally lights:</p>
+    <p>Follow these instructions to set up your tally Lights:</p>
 
     <ol>
         <li>
             Determine which mode to use.
         </li>
+         <li>
+            Read the entire instructions first.
+        </li>
         <li>
             Modes of operation:
             <ul>
-                <li><strong>A</strong>: Tally lights connect directly to ATEM</li>
-                <li><strong>B</strong>: Tally lights connect via RELAY server and .exe program</li>
+                <li><strong>A</strong>: Tally Lights connect directly to ATEM</li>
+                <li><strong>B</strong>: Tally Lights connect via RELAY server and .exe program</li>
             </ul>
         </li>
         <li>
             If mode <strong>A</strong>:
             <ul>
-                <li>Power up ATEM switcher, connect it to the WiFi network.</li>
-                <li>Find ATEM's local IP.</li>
-                <li>Power up Tally lights.</li>
+                <li>Power up ATEM switcher, connect it to the internet via ethernet cable.</li>
+                <li>Power up Tally Lights.</li>
                 <li>Flip the switch button to turn on SOFT AP mode; the LED must turn white!</li>
                 <li>On your phone, open WiFi and find a new network called something like "tally setup" or "ESP-...". Connect to it.</li>
                 <li>Open your browser and type <code>192.168.4.1</code>. Click enter and input all the required settings, including ATEM's local IP. Ensure the "use relay server" setting is set to <strong>FALSE</strong>.</li>
@@ -70,20 +72,22 @@
         <li>
             If mode <strong>B</strong>:
             <ul>
-                <li>Power up ATEM, connect it to the WiFi network.</li>
-                <li>Find ATEM switcher's local IP.</li>
+                <li>Power up ATEM, connect it to the internet via ethernet cable.</li>
                 <li>Get any computer, power it up, and connect it to the same WiFi network as ATEM.</li>
                 <li>On the computer, open a browser and type: <a href="https://tally.pamparampam.dev/download/program">tally.pamparampam.dev/download/program</a>.</li>
                 <li>After the .exe file is downloaded, run it. </li>
                     <ul>
                         <li>Make sure virus blocker is not blocking the .exe file access to internet.</li>
                     </ul>
-                <li>When prompted, input the required settings. You can type "skip" to use the default relay settings, and perform a network scan to find ATEM switcher.</li>
                     <ul>
-                        <li>Relay Room ID is a unique identifier. Create a unique word or number and <strong>MEMORIZE IT!</strong></li>
+                        <li>You may need to disable Windows Defender, google it up.</li>
                     </ul>
-                <li>If everything works, you should see <code>Connected to Atem Switcher!"</code></li>
-                <li>Power up Tally lights.</li>
+                <li>When prompted, input the required settings. Type 'skip' for first 2 settings if u don't understand them. This will use default ones.</li>
+                    <ul>
+                        <li>Relay Room ID is a unique identifier. Create a unique word or number and <strong>MEMORIZE IT!</strong>. This Relay Room ID will be used later to pair .exe program with Tally Lights.</li>
+                    </ul>
+                <li>If everything works, you should see <code>Connected to Atem Switcher and Connected to Websocket!"</code></li>
+                <li>Power up Tally Lights.</li>
                 <li>Flip the switch button to turn on SOFT AP mode; the LED must turn white!</li>
                 <li>On your phone, open WiFi and find a new network called something like "tally setup" or "ESP-...". Connect to it.</li>
                 <li>Open your browser and type <code>192.168.4.1</code>. Click enter and input all the required settings. Ensure the "use relay server" setting is set to <strong>TRUE</strong>.</li>
@@ -104,10 +108,13 @@
         </li>
     </ol>
 
+    <h2>Charging</h2>
+    <p>Plug the USB-C cable into the Tally Light. Ensure that there is a red light visible inside the case. Charge for 2-4 hours. The battery life is estimated to be around 20 hours.</p>
+
     <h2>Explanation of Colors</h2>
     <dl class="color-explanation">
         <dt>Blue</dt>
-        <dd>Tally light is trying to connect to WiFi. If it's blue for a long time, you most likely have given it the wrong WiFi credentials.</dd>
+        <dd>Tally Light is trying to connect to WiFi. If it's blue for a long time, you most likely have given it the wrong WiFi credentials.</dd>
 
         <dt>White</dt>
         <dd>SOFT AP mode is ON. You can find a WiFi network, connect to it, and by typing <code>192.168.1.4</code> in your browser, you can change tally's settings.</dd>
@@ -125,7 +132,9 @@
         <dd>Tally is LIVE.</dd>
 
         <dt>Off</dt>
-        <dd>Either tally light is not turned on, or Tally is neither on PREVIEW nor on LIVE.</dd>
+        <dd>Either Tally Light is not turned on, or Tally is neither on PREVIEW nor on LIVE.</dd>
     </dl>
+    <h2>Contact</h2>
+    <a href="https://github.com/pam-param-pam/Tally-light">Github</a>
 </body>
 </html>

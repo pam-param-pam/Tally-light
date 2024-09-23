@@ -11,7 +11,9 @@ import json
 from colorama import init, Fore
 from websocket import WebSocketConnectionClosedException
 
-
+"""
+This code is extremely ugly, i wrote it in 2 hours and it works™ 
+"""
 init()
 ATEM_MAC_ADDRESS = "7c:2e:0d:14:2f:6d"
 LED_COLORS = {
@@ -24,25 +26,30 @@ LED_COLORS = {
     6: "WHITE",
     7: "ORANGE"
 }
+
+
 def scan_local_network(ip_range):
-    from scapy.all import ARP, Ether, srp
-    print(f"{Fore.LIGHTMAGENTA_EX}This may take a while...")
-    arp = ARP(pdst=ip_range)
-    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-    packet = ether/arp
+    try:
+        from scapy.all import ARP, Ether, srp
+        print(f"{Fore.LIGHTMAGENTA_EX}This may take a while...")
+        arp = ARP(pdst=ip_range)
+        ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+        packet = ether / arp
 
-    result = srp(packet, timeout=3, verbose=0)[0]
+        result = srp(packet, timeout=3, verbose=0)[0]
 
-    devices = []
-    for sent, received in result:
-        # Try to get the hostname (device name)
-        try:
-            name = socket.gethostbyaddr(received.psrc)[0]  # Reverse DNS lookup for hostname
-        except socket.herror:
-            name = "Unknown"  # Hostname could not be resolved
-        devices.append({'ip': received.psrc, 'mac': received.hwsrc, 'name': name})
+        devices = []
+        for sent, received in result:
+            # Try to get the hostname (device name)
+            try:
+                name = socket.gethostbyaddr(received.psrc)[0]  # Reverse DNS lookup for hostname
+            except socket.herror:
+                name = "Unknown"  # Hostname could not be resolved
+            devices.append({'ip': received.psrc, 'mac': received.hwsrc, 'name': name})
 
-    return devices
+        return devices
+    except RuntimeError:
+        print(f"{Fore.LIGHTRED_EX}Cannot perform a network scan. Please install: 'https://www.winpcap.org/install/' and restart the program.")
 
 
 while True:
@@ -83,7 +90,8 @@ while True:
         if found:
             break
         else:
-            print(f"{Fore.LIGHTRED_EX}Couldn't find ATEM make sure:\n1) Atem is turned ON.\n2) ATEM is in the same network as this computer.\n3) Anti virus is not blocking this program's network access.")
+            print(
+                f"{Fore.LIGHTRED_EX}Couldn't find ATEM make sure:\n1) Atem is turned ON.\n2) ATEM is in the same network as this computer.\n3) Anti virus is not blocking this program's network access.")
     atem_ip_pattern = r"^((\d{1,3}\.){3}\d{1,3}|\[[a-fA-F0-9:]+\])(:\d{1,5})?$"
     if not re.match(atem_ip_pattern, atem_ip):
         print(f"{Fore.RED}Atem IP ISN'T VALID")
@@ -113,7 +121,8 @@ print(f"{Fore.LIGHTBLUE_EX}===Connecting to ATEM SWITCHER(timeout=3)===")
 switcher.waitForConnection(timeout=3)
 if not switcher.connected:
     print(f"{Fore.RED}ERROR: CAN'T CONNECT TO ATEM SWITCHER!!!")
-    print(f"{Fore.LIGHTRED_EX}Restart program with a correct ATEM IP, make sure:\n1) Atem is turned ON.\n2) ATEM is in the same network as this computer.\n3) Anti virus is not blocking this program's network access.")
+    print(
+        f"{Fore.LIGHTRED_EX}Restart program with a correct ATEM IP, make sure:\n1) Atem is turned ON.\n2) ATEM is in the same network as this computer.\n3) Anti virus is not blocking this program's network access.")
     sys.exit(0)
 else:
     print(f"{Fore.GREEN}Connected to Atem Switcher!")
@@ -160,9 +169,10 @@ def on_message(ws, message):
             print(f"{Fore.LIGHTMAGENTA_EX}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {Fore.LIGHTBLUE_EX}Tally connected: tally_number: {tally_number}")
             send_websocket_message(json.dumps({"op": 4, "t": 0, "d": {"pg": last_program, "pv": last_preview}}))
         elif op_code == 2:  # PING
-            print(f"{Fore.LIGHTRED_EX}Tally number {tally_number} has responded to PING with a PONG")
+            print(f"{Fore.LIGHTGREEN_EX}Tally number {tally_number} has responded to a PING with a PONG")
         elif op_code == 7:  # Tally disconnected
-            print(f"{Fore.LIGHTMAGENTA_EX}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {Fore.LIGHTRED_EX}Tally number {tally_number} has disconnected from the relay server, reason unknown!")
+            print(
+                f"{Fore.LIGHTMAGENTA_EX}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {Fore.LIGHTRED_EX}Tally number {tally_number} has disconnected from the relay server, reason unknown!")
         elif op_code == 9:  # Status check response
             try:
                 color = LED_COLORS[json_message['d']['c']]
@@ -205,7 +215,8 @@ def send_websocket_message(message):
     except WebSocketConnectionClosedException:
         print(f"{Fore.RED}ERROR Couldn't send message, websocket is CLOSED")
 
-#websocket.enableTrace(True)
+
+# websocket.enableTrace(True)
 ws = websocket.WebSocketApp(websocket_address,
                             on_open=on_open,
                             on_message=on_message,
@@ -223,7 +234,6 @@ def run_websocket():
 
 websocket_thread = threading.Thread(target=run_websocket)
 websocket_thread.start()
-
 
 # Thread for command line commands
 try:
