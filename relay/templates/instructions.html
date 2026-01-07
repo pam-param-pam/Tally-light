@@ -227,7 +227,9 @@
                     <li>Relay Room ID is a unique identifier used to pair Atem and Tally Lights together. Make sure to <strong>MEMORIZE IT</strong></li>
                 </ul>
                 <li>Confirm the program shows: <span class="code">Connected to Atem Switcher</span>.</li>
+                <li>Power up the Tally Lights.</li>
                 <li>Flip the switch to enable <strong>SOFT AP</strong>; the LED must turn <strong>white</strong>.</li>
+                <li>On your phone, connect to a Wi-Fi network like <em>“tally setup”</em> or <em>“ESP-…”</em>.</li>
                 <li>Open a browser and go to <span class="code">192.168.4.1</span>.</li>
                 <li>Fill in all required settings.</li>
                 <li>Ensure <strong>Use Relay Server</strong> is set to <strong>TRUE</strong>.</li>
@@ -242,11 +244,14 @@
         <h2>Explanation of Colors</h2>
 
         <div class="color-grid">
-            <div class="color-item"><span class="dot blue"></span>
-                <div><strong>Blue</strong><br>Connecting to Wi-Fi.</div>
+            <div class="color-item"><span class="dot off"></span>
+                <div><strong>Off</strong><br>Inactive or idle.</div>
             </div>
             <div class="color-item"><span class="dot white"></span>
                 <div><strong>White</strong><br>SOFT AP mode active.</div>
+            </div>
+            <div class="color-item"><span class="dot blue"></span>
+                <div><strong>Blue</strong><br>Connecting to Wi-Fi.</div>
             </div>
             <div class="color-item"><span class="dot pink"></span>
                 <div><strong>Pink</strong><br>Connecting to ATEM or Relay.</div>
@@ -259,9 +264,6 @@
             </div>
             <div class="color-item"><span class="dot red"></span>
                 <div><strong>Red</strong><br>LIVE.</div>
-            </div>
-            <div class="color-item"><span class="dot off"></span>
-                <div><strong>Off</strong><br>Inactive or idle.</div>
             </div>
         </div>
     </div>
