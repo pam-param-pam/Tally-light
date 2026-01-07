@@ -4,137 +4,357 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tally Light Instructions</title>
+
     <style>
+        :root {
+            --primary: #006699;
+            --accent: #00a3cc;
+            --danger: #cc0000;
+            --bg: #f4f6f8;
+            --card: #ffffff;
+            --text: #333;
+            --muted: #666;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             line-height: 1.6;
-            margin: 20px;
-            color: #333;
         }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 40px;
+        }
+
         h2 {
-            color: #006699;
+            color: var(--primary);
+            margin-top: 0;
         }
+
         h3 {
-            color: #333;
+            margin-top: 0;
         }
+
         p {
+            margin: 10px 0 20px;
+            color: var(--muted);
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+        }
+
+        ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 12px;
+        }
+
+        ul {
+            margin-top: 10px;
+            padding-left: 20px;
+        }
+
+        .mode {
+            border-left: 5px solid var(--accent);
+            padding-left: 20px;
+            margin: 20px 0;
+        }
+
+        .mode strong {
+            color: var(--primary);
+        }
+
+        .code {
+            background: #eef3f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.95em;
+        }
+
+        /* Color legend */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .color-item {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        .blue {
+            background: #007bff;
+        }
+
+        .white {
+            background: #ddd;
+            border: 1px solid #aaa;
+        }
+
+        .pink {
+            background: #e83e8c;
+        }
+
+        .yellow {
+            background: #ffc107;
+        }
+
+        .green {
+            background: #28a745;
+        }
+
+        .red {
+            background: #dc3545;
+        }
+
+        .off {
+            background: #555;
+        }
+
+        /* Troubleshooting */
+        .issue {
+            border-left: 5px solid var(--danger);
+            background: #fff5f5;
+            padding: 20px 25px;
+            border-radius: 8px;
             margin-bottom: 20px;
         }
-        ul {
-            list-style-type: decimal;
-            margin-left: 20px;
+
+        .issue h3 {
+            color: var(--danger);
         }
-        ul ul {
-            list-style-type: lower-alpha;
-            margin-left: 20px;
+
+        .solution {
+            margin-top: 15px;
+            padding-left: 15px;
+            border-left: 3px solid var(--primary);
         }
-        .color-explanation {
-            margin-top: 30px;
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
         }
-        .color-explanation dt {
-            font-weight: bold;
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
         }
-        .color-explanation dd {
-            margin-left: 20px;
-            margin-bottom: 10px;
+
+        footer a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
+
 <body>
-    <h2>How to Use</h2>
-    <p>Follow these instructions to set up your tally Lights:</p>
+<div class="container">
 
-    <ol>
-        <li>
-            Determine which mode to use.
-        </li>
-         <li>
-            Read the entire instructions first.
-        </li>
-        <li>
-            Modes of operation:
-            <ul>
-                <li><strong>A</strong>: Tally Lights connect directly to ATEM</li>
-                <li><strong>B</strong>: Tally Lights connect via RELAY server and .exe program</li>
-            </ul>
-        </li>
-        <li>
-            If mode <strong>A</strong>:
-            <ul>
-                <li>Power up ATEM switcher, connect it to the internet via ethernet cable.</li>
-                <li>Power up Tally Lights.</li>
-                <li>Flip the switch button to turn on SOFT AP mode; the LED must turn white!</li>
-                <li>On your phone, open WiFi and find a new network called something like "tally setup" or "ESP-...". Connect to it.</li>
-                <li>Open your browser and type <code>192.168.4.1</code>. Click enter and input all the required settings, including ATEM's local IP. Ensure the "use relay server" setting is set to <strong>FALSE</strong>.</li>
-                <li>Click save! And you are ready to go!</li>
-            </ul>
-        </li>
-        <li>
-            If mode <strong>B</strong>:
-            <ul>
-                <li>Power up ATEM, connect it to the internet via ethernet cable.</li>
-                <li>Get any computer, power it up, and connect it to the same WiFi network as ATEM.</li>
-                <li>On the computer, open a browser and type: <a href="https://tally.pamparampam.dev/download/program">tally.pamparampam.dev/download/program</a>.</li>
-                <li>After the .exe file is downloaded, run it. </li>
+    <h1>Tally Light Setup Guide</h1>
+
+    <div class="card">
+        <h2>How to Use</h2>
+        <p>Follow these steps carefully to set up your Tally Lights.</p>
+
+        <ol>
+            <li>Read the entire instructions first.</li>
+            <li>Review the color explanations and troubleshooting sections.</li>
+            <li>Determine which mode you want to use.</li>
+            <li>
+                <strong>Modes of operation:</strong>
+                <ul>
+                    <li><strong>A</strong> — Direct connection to ATEM</li>
+                    <li><strong>B</strong> — Connection via Relay Server + .exe program</li>
+                </ul>
+            </li>
+        </ol>
+
+        <div class="mode">
+            <h3>Mode A — Direct ATEM connection</h3>
+            <ol>
+                <li>Power up the ATEM and connect it to the internet via Ethernet.</li>
+                <li>Power up the Tally Lights.</li>
+                <li>Flip the switch to enable <strong>SOFT AP</strong>; the LED must turn <strong>white</strong>.</li>
+                <li>On your phone, connect to a Wi-Fi network like <em>“tally setup”</em> or <em>“ESP-…”</em>.</li>
+                <li>Open a browser and go to <span class="code">192.168.4.1</span>.</li>
+                <li>Fill in all required settings, including ATEM IP. Ensure <strong>Use Relay Server</strong> is set to <strong>FALSE</strong>.</li>
+                <li>Make sure Tally Light's Wi-Fi network is the same as ATEM's</li>
+                <li>Click <strong>Save</strong>. You’re ready to go.</li>
+            </ol>
+        </div>
+
+        <div class="mode">
+            <h3>Mode B — Relay Server</h3>
+            <ol>
+                <li>Power up the ATEM and connect it to the internet via Ethernet.</li>
+                <li>On a computer connected to the same network as ATEM, open this <a href="https://tally.pamparampam.dev/download/program">link</a></li>
+                <li>Download and run the .exe file.</li>
+                <li>Ensure antivirus or Windows Defender is not blocking it.</li>
+                <li>When prompted, fill the required values or click <strong>ENTER</strong> to use default ones.</li>
+                <ul>
+                    <li>Relay Room ID is a unique identifier used to pair Atem and Tally Lights together. Make sure to <strong>MEMORIZE IT</strong></li>
+                </ul>
+                <li>Confirm the program shows: <span class="code">Connected to Atem Switcher</span>.</li>
+                <li>Flip the switch to enable <strong>SOFT AP</strong>; the LED must turn <strong>white</strong>.</li>
+                <li>Open a browser and go to <span class="code">192.168.4.1</span>.</li>
+                <li>Fill in all required settings.</li>
+                <li>Ensure <strong>Use Relay Server</strong> is set to <strong>TRUE</strong>.</li>
+                <li>Ensure <strong>Room ID</strong> is the same as the one used in <span class="code">step 5</span>.</li>
+                <li>Click <strong>Save</strong>. You’re ready to go.</li>
+
+            </ol>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Explanation of Colors</h2>
+
+        <div class="color-grid">
+            <div class="color-item"><span class="dot blue"></span>
+                <div><strong>Blue</strong><br>Connecting to Wi-Fi.</div>
+            </div>
+            <div class="color-item"><span class="dot white"></span>
+                <div><strong>White</strong><br>SOFT AP mode active.</div>
+            </div>
+            <div class="color-item"><span class="dot pink"></span>
+                <div><strong>Pink</strong><br>Connecting to ATEM or Relay.</div>
+            </div>
+            <div class="color-item"><span class="dot yellow"></span>
+                <div><strong>Yellow</strong><br>Connected but no tally data.</div>
+            </div>
+            <div class="color-item"><span class="dot green"></span>
+                <div><strong>Green</strong><br>PREVIEW.</div>
+            </div>
+            <div class="color-item"><span class="dot red"></span>
+                <div><strong>Red</strong><br>LIVE.</div>
+            </div>
+            <div class="color-item"><span class="dot off"></span>
+                <div><strong>Off</strong><br>Inactive or idle.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Troubleshooting</h2>
+
+        <div class="troubleshooting">
+
+            <div class="issue">
+                <h3>White LED is ON, but no setup Wi-Fi is visible</h3>
+
+                <p><strong>Possible causes:</strong></p>
+                <ul>
+                    <li>Your device is caching Wi-Fi scan results</li>
+                    <li>Your device refuses to recognize the setup Wi-Fi as a proper Wi-Fi network</li>
+                </ul>
+
+                <div class="solution">
+                    <p><strong>Solution:</strong></p>
                     <ul>
-                        <li>Make sure virus blocker is not blocking the .exe file access to internet.</li>
+                        <li>Turn Wi-Fi off on your device</li>
+                        <li>Flip the switch to SOFT AP mode</li>
+                        <li>Wait up to 30 seconds and scan for Wi-Fi networks</li>
                     </ul>
+                </div>
+            </div>
+
+            <div class="issue">
+                <h3>Blue LED is ON, and Wi-Fi credentials are 100% correct, but the Tally Light never connects</h3>
+
+                <p><strong>Possible causes:</strong></p>
+                <ul>
+                    <li>Wrong Wi-Fi credentials</li>
+                    <li><b>The Wi-Fi network must be 2.4&nbsp;GHz, NOT 5&nbsp;GHz</b> for the Tally Light to connect</li>
+                </ul>
+
+                <div class="solution">
+                    <p><strong>Solution:</strong></p>
                     <ul>
-                        <li>You may need to disable Windows Defender, google it up.</li>
+                        <li>Verify the ATEM IP address</li>
+                        <li>Ensure the .exe program shows “Connected to Atem Switcher”</li>
+                        <li>Confirm the Relay Room ID matches exactly (case-sensitive)</li>
                     </ul>
-                <li>When prompted, input the required settings. Type 'skip' for first 2 settings if u don't understand them. This will use default ones.</li>
+                </div>
+            </div>
+
+            <div class="issue">
+                <h3>My device sees the setup network, tries to connect to it, but the connection fails or does not last long</h3>
+
+                <p><strong>Possible causes:</strong></p>
+                <ul>
+                    <li>Poor network stability</li>
+                    <li>Your device sees “better” networks and automatically connects to them instead</li>
+                    <li>Your device refuses to stay connected because the network has no internet access</li>
+                </ul>
+
+                <div class="solution">
+                    <p><strong>Solution:</strong></p>
                     <ul>
-                        <li>Relay Room ID is a unique identifier. Create a unique word or number and <strong>MEMORIZE IT!</strong>. This Relay Room ID will be used later to pair .exe program with Tally Lights.</li>
+                        <li>Disable auto-reconnect in your device’s Wi-Fi settings</li>
+                        <li>Manually force the connection to the setup network</li>
                     </ul>
-                <li>If everything works, you should see <code>Connected to Atem Switcher and Connected to Websocket!"</code></li>
-                <li>Power up Tally Lights.</li>
-                <li>Flip the switch button to turn on SOFT AP mode; the LED must turn white!</li>
-                <li>On your phone, open WiFi and find a new network called something like "tally setup" or "ESP-...". Connect to it.</li>
-                <li>Open your browser and type <code>192.168.4.1</code>. Click enter and input all the required settings. Ensure the "use relay server" setting is set to <strong>TRUE</strong>.</li>
+                </div>
+            </div>
+
+            <div class="issue">
+                <h3>LED stays yellow for a long time</h3>
+
+                <p><strong>Meaning:</strong> Tally is connected to Wi-Fi and the relay server, but receives no tally data.</p>
+
+                <div class="solution">
+                    <p><strong>Solution:</strong></p>
                     <ul>
-                        <li>It's extremely important to input the same values as in the .exe program in step 6.</li>
-                        <li>If you used the default ones, they will be:
-                            <ul>
-                                <li>Relay WebSocket Host: <code>tally.pamparampam.dev</code></li>
-                                <li>Relay WebSocket Path: <code>/tally</code></li>
-                                <li>Relay WebSocket Port: <code>443</code></li>
-                                <li>Relay Room ID: <code>your unique Room ID</code> from step 6</li>
-                            </ul>
-                        </li>
+                        <li>Check whether the .exe program is running</li>
+                        <li>Verify the relay server settings</li>
+                        <li>Restart both the Tally Light and the .exe program</li>
                     </ul>
+                </div>
+            </div>
 
-                <li>Click save! And you are ready to go!</li>
-            </ul>
-        </li>
-    </ol>
+        </div>
+    </div>
 
-    <h2>Charging</h2>
-    <p>Plug the USB-C cable into the Tally Light. Ensure that there is a red light visible inside the case. Charge for 2-4 hours. The battery life is estimated to be around 20 hours.</p>
+    <div class="card">
+        <h2>Charging</h2>
+        <p>Charge via USB-C for 2–4 hours. Red internal LED indicates charging. Estimated battery life: ~20 hours.</p>
+    </div>
 
-    <h2>Explanation of Colors</h2>
-    <dl class="color-explanation">
-        <dt>Blue</dt>
-        <dd>Tally Light is trying to connect to WiFi. If it's blue for a long time, you most likely have given it the wrong WiFi credentials.</dd>
+    <footer>
+        <a href="https://github.com/pam-param-pam/Tally-light">GitHub Project</a>
+    </footer>
 
-        <dt>White</dt>
-        <dd>SOFT AP mode is ON. You can find a WiFi network, connect to it, and by typing <code>192.168.1.4</code> in your browser, you can change tally's settings.</dd>
-
-        <dt>Pink</dt>
-        <dd>Connected to WiFi, trying to connect either to ATEM or Relay Server.</dd>
-
-        <dt>Yellow</dt>
-        <dd>Connected to WiFi and relay server, no info about preview/live. Most likely the .exe program is not set up correctly.</dd>
-
-        <dt>Green</dt>
-        <dd>Tally is on PREVIEW.</dd>
-
-        <dt>Red</dt>
-        <dd>Tally is LIVE.</dd>
-
-        <dt>Off</dt>
-        <dd>Either Tally Light is not turned on, or Tally is neither on PREVIEW nor on LIVE.</dd>
-    </dl>
-    <h2>Contact</h2>
-    <a href="https://github.com/pam-param-pam/Tally-light">Github</a>
+</div>
 </body>
 </html>
