@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  stop-service:
+  start-service:
     runs-on: ubuntu-latest
 
     steps:
