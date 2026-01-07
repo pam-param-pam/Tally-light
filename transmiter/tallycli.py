@@ -1,4 +1,3 @@
-import random
 from dataclasses import dataclass
 from typing import Optional
 import threading
@@ -50,72 +49,6 @@ def scan_local_network(ip_range) -> Optional[list[dict]]:
     except RuntimeError:
         print(f"{Fore.LIGHTRED_EX}Cannot perform a network scan. Please install: 'https://www.winpcap.org/install/' and restart the program.")
 
-def mock_handle_tally_updates():
-    print(f"{Fore.YELLOW}=== MOCK ATEM MODE ENABLED ===")
-
-    # reasonable ATEM-like input range
-    SOURCES = list(range(1, 9))  # e.g. cams 1–8
-
-    while True:
-        # simulate random delay between ATEM changes
-        time.sleep(random.uniform(0.3, 2.0))
-
-        with atem_state_lock:
-            old_pg = atem_state.program
-            old_pv = atem_state.preview
-
-            # ensure program != preview
-            new_pg = random.choice(SOURCES)
-            new_pv = random.choice([s for s in SOURCES if s != new_pg])
-
-            if new_pg == old_pg and new_pv == old_pv:
-                continue  # no-op change, skip
-
-            atem_state.program = new_pg
-            atem_state.preview = new_pv
-
-        send_websocket_message(json.dumps({
-            "op": 4,
-            "t": 0,
-            "d": {"pg": new_pg, "pv": new_pv}
-        }))
-
-        print(
-            f"{Fore.CYAN}[MOCK] Program={new_pg} "
-            f"{Fore.MAGENTA}Preview={new_pv}"
-        )
-# Function to handle ATEM switcher tally updates
-def handle_tally_updates():
-    changedState = False
-
-    while True:
-        if changedState:
-            print(f"{Fore.GREEN}===Connected to Atem===")
-            changedState = False
-
-        if not switcher.connected:
-            print(f"{Fore.LIGHTRED_EX}===Lost connection to Atem===")
-            print(f"{Fore.LIGHTMAGENTA_EX}Program will not work until connection is reestablished.")
-            print(f"{Fore.BLUE}Attempting to re-connect, timeout=infinite.")
-            switcher.waitForConnection()
-            changedState = True
-
-        program = switcher.programInput[0].videoSource.value
-        preview = switcher.previewInput[0].videoSource.value
-
-        with atem_state_lock:
-            if program != atem_state.program or preview != atem_state.preview:
-                atem_state.program = program
-                atem_state.preview = preview
-
-                send_websocket_message(json.dumps({
-                    "op": 4,
-                    "t": 0,
-                    "d": {"pg": program, "pv": preview}
-                }))
-
-        time.sleep(0.01)
-
 # Initialize WebSocket connection
 def on_message(ws, message):
     try:
@@ -146,8 +79,6 @@ def on_message(ws, message):
             print(f"{Fore.CYAN}Tally name: {Fore.LIGHTMAGENTA_EX}{json_message['d']['n']}")
             print(f"{Fore.CYAN}Current color: {Fore.LIGHTMAGENTA_EX}{color}")
             print(f"{Fore.CYAN}Wifi name: {Fore.LIGHTMAGENTA_EX}{json_message['d']['s']}")
-            # print(f"{Fore.CYAN}Wifi pwd: {Fore.LIGHTMAGENTA_EX}{json_message['d']['p']}")
-            print(f"{Fore.CYAN}Room ID: {Fore.LIGHTMAGENTA_EX}{json_message['d']['r']}")
 
         else:
             print(f"{Fore.RED}Couldn't parse message: '{message}'")
@@ -181,7 +112,7 @@ def on_open(ws):
         "d": {"pg": pg, "pv": pv}
     }))
 
-    tally_thread = threading.Thread(target=mock_handle_tally_updates, daemon=True)
+    tally_thread = threading.Thread(target=handle_tally_updates, daemon=True)
     tally_thread.start()
 
 
@@ -190,7 +121,6 @@ def send_websocket_message(message):
         ws.send(message)
     except WebSocketConnectionClosedException:
         print(f"{Fore.RED}ERROR: Couldn't send message, websocket is CLOSED")
-
 
 
 try:
@@ -268,19 +198,50 @@ try:
 
     print(f"{Fore.CYAN}===Connecting to ATEM SWITCHER(timeout=3)===")
 
-    # # Initialize ATEM switcher connection
-    # switcher = PyATEMMax.ATEMMax()
-    # switcher.connect(atem_ip)
-    # switcher.waitForConnection(timeout=3)
-    #
-    # if not switcher.connected:
-    #     print(f"{Fore.RED}ERROR: Can't connect to Atem Switcher!")
-    #     print(
-    #         f"{Fore.LIGHTRED_EX}Restart program with a correct Atem IP, make sure:\n1) Atem is turned ON.\n2) ATEM is in the same network as this computer.\n3) Anti virus is not blocking this program's network access.")
-    #     sys.exit(0)
-    # else:
-    #     print(f"{Fore.GREEN}Connected to Atem Switcher!")
+    # Initialize ATEM switcher connection
+    switcher = PyATEMMax.ATEMMax()
+    switcher.connect(atem_ip)
+    switcher.waitForConnection(timeout=3)
 
+    # Function to handle ATEM switcher tally updates
+    def handle_tally_updates():
+        changedState = False
+
+        while True:
+            if changedState:
+                print(f"{Fore.GREEN}===Connected to Atem===")
+                changedState = False
+
+            if not switcher.connected:
+                print(f"{Fore.LIGHTRED_EX}===Lost connection to Atem===")
+                print(f"{Fore.LIGHTMAGENTA_EX}Program will not work until connection is reestablished.")
+                print(f"{Fore.BLUE}Attempting to re-connect, timeout=infinite.")
+                switcher.waitForConnection()
+                changedState = True
+
+            program = switcher.programInput[0].videoSource.value
+            preview = switcher.previewInput[0].videoSource.value
+
+            with atem_state_lock:
+                if program != atem_state.program or preview != atem_state.preview:
+                    atem_state.program = program
+                    atem_state.preview = preview
+
+                    send_websocket_message(json.dumps({
+                        "op": 4,
+                        "t": 0,
+                        "d": {"pg": program, "pv": preview}
+                    }))
+
+            time.sleep(0.01)
+
+    if not switcher.connected:
+        print(f"{Fore.RED}ERROR: Can't connect to Atem Switcher!")
+        print(
+            f"{Fore.LIGHTRED_EX}Restart program with a correct Atem IP, make sure:\n1) Atem is turned ON.\n2) ATEM is in the same network as this computer.\n3) Anti virus is not blocking this program's network access.")
+        sys.exit(0)
+    else:
+        print(f"{Fore.GREEN}Connected to Atem Switcher!")
 
     # websocket.enableTrace(True)
     ws = websocket.WebSocketApp(websocket_address,

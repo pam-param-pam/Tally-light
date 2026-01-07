@@ -122,7 +122,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
             Serial.println("Sending identify EVENT");
 
             JsonDocument doc;
-            doc["op"] = 1; // test connection opcode(from tally)
+            doc["op"] = 1; // identify opcode
             doc["t"] = settings.tallyNumber + 1;
             doc["d"]["rId"] = settings.relayRoomID;
             String jsonString;
@@ -193,7 +193,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
               setLedColor(LED_YELLOW);
             }
-            else if (op_code == 9) {
+            else if (op_code == 9) { //status event
               Serial.printf("[WSc] status check");
               rawBatteryRead = analogRead(A0);
               uBatt = (double) rawBatteryRead / 1023 * 4.2;
@@ -390,9 +390,11 @@ void loop() {
         Serial.println("------------------------");
         Serial.println("WiFi connection lost...");
         changeState(STATE_CONNECTING_TO_WIFI);
-        //Force atem library to reset connection, in order for status to read correctly on website.
-        atemSwitcher.begin(settings.switcherIP);
-        atemSwitcher.connect();
+        if (!settings.useRelayServer) {
+          //Force atem library to reset connection, in order for status to read correctly on website.
+          atemSwitcher.begin(settings.switcherIP);
+          atemSwitcher.connect();
+        }
     }
 
 
@@ -403,8 +405,8 @@ void loop() {
     buttonLoop();
 
     // Serial.println("======FREE HEAP========");
-    // Serial.println(ESP.getFreeHeap());
-    //delay(100);
+    Serial.println(ESP.getFreeHeap());
+    delay(100);
 }
 
 //Handle the change of states in the program
@@ -916,13 +918,19 @@ void buttonLoop() {
     // Serial.println(buttonReading);
 
     if (buttonReading != buttonPrevious) {
-      if (buttonReading == LOW) {
-        webSocket.disconnect();
-        changeState(SOFT_AP_ON);
-        Serial.println("ACCESS POINT IS ON");
-        WiFi.mode(WIFI_AP_STA);
-        WiFi.softAP((String)settings.tallyName + " setup");
-      }
+        if (buttonReading == LOW) {
+            webSocket.disconnect();
+            changeState(SOFT_AP_ON);
+            Serial.println("ACCESS POINT IS ON");
+            WiFi.mode(WIFI_AP_STA);
+
+            String apName = settings.tallyName;
+            if (!apName.endsWith(" setup")) {
+                apName += " setup";
+            }
+
+            WiFi.softAP(apName);
+        }
       else {
         WiFi.mode(WIFI_STA);
         Serial.println("ACCESS POINT IS OFF");
