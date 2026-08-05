@@ -1,17 +1,17 @@
-name: Stop Django Application
+name: Start Django Application
 
 on:
   workflow_dispatch:
 
 jobs:
-  stop-service:
+  start-service:
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
 
     steps:
-      - name: Stop service via Cloudflare SSH
+      - name: Start Service via Cloudflare SSH
         uses: pam-param-pam/cloudflare-ssh-action@v1.0.0
         with:
           host: ${{ secrets.CI_DEPLOYMENT_HOST }}
@@ -22,5 +22,5 @@ jobs:
           service-token-secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           command: |
             set -e
-            sudo systemctl stop tally-light
-            sudo systemctl --no-pager --full status tally-light || true
+            sudo systemctl start tally-light
+            sudo systemctl --no-pager --full status tally-light
