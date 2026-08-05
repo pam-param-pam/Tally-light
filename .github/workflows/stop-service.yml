@@ -7,14 +7,20 @@ jobs:
   stop-service:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
-    - name: Stop Service on Virtual Machine
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.CI_DEPLOYMENT_HOST }}
-        port: ${{ secrets.CI_DEPLOYMENT_PORT }}
-        username: ${{ secrets.CI_RPI_USERNAME }}
-        key: ${{ secrets.CI_RPI_SSH_KEY }}
-        script: |
-          # Stop the tally-light service
-          sudo systemctl stop tally-light
+      - name: Stop Service via Cloudflare SSH
+        uses: pam-param-pam/cloudflare-ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.CI_DEPLOYMENT_HOST }}
+          username: ${{ secrets.CI_RPI_USERNAME }}
+          private-key: ${{ secrets.CI_RPI_SSH_KEY }}
+          known-hosts: ${{ secrets.CI_RPI_SSH_KNOWN_HOSTS }}
+          service-token-id: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          service-token-secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          command: |
+            set -e
+            sudo systemctl stop tally-light
+            sudo systemctl is-active tally-light || true

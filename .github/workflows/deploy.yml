@@ -4,66 +4,63 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
-    - name: Deploy to Virtual Machine
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.CI_DEPLOYMENT_HOST }}
-        port: ${{ secrets.CI_DEPLOYMENT_PORT }}
-        username: ${{ secrets.CI_RPI_USERNAME }}
-        key: ${{ secrets.CI_RPI_SSH_KEY }}
-        script: |
-          # Navigate to the home directory or your desired parent directory
-          cd ~
+      - name: Deploy via Cloudflare SSH
+        uses: pam-param-pam/cloudflare-ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.CI_DEPLOYMENT_HOST }}
+          username: ${{ secrets.CI_RPI_USERNAME }}
+          private-key: ${{ secrets.CI_RPI_SSH_KEY }}
+          known-hosts: ${{ secrets.CI_RPI_SSH_KNOWN_HOSTS }}
+          service-token-id: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          service-token-secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          command: |
+            set -e
 
-          # Attempt to navigate to the tally-light directory
-          if [ -d "Tally-light" ]; then
-            echo "Directory tally-light exists. Pulling the latest changes."
-            cd Tally-light
-            git pull
-          else
-            echo "Directory tally-light does not exist. Cloning the repository."
-            git clone https://github.com/pam-param-pam/Tally-light.git
-            cd Tally-light
-          fi
-          
-          # Checkout the master branch
-          git checkout master
+            cd ~
 
-          # Navigate to the relay directory
-          cd relay
+            if [ -d "Tally-light/.git" ]; then
+              echo "Tally-light repository exists. Updating it..."
+              cd Tally-light
+              git fetch origin
+              git checkout master
+              git pull --ff-only origin master
+            else
+              echo "Tally-light repository does not exist. Cloning it..."
+              git clone --branch master https://github.com/pam-param-pam/Tally-light.git
+              cd Tally-light
+            fi
 
-          # Create or update the .env file with the secrets
-          echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
-          echo "DEBUG=False" >> .env
+            cd relay
 
-          # Check if virtual environment exists; create if it doesn't
-          if [ ! -d "venv" ]; then
-            echo "Virtual environment not found, creating one."
-            python3 -m venv venv
-          fi
-          
-          # Activate virtual environment
-          source venv/bin/activate
-          
-          # Upgrade pip to avoid potential issues
-          pip install --upgrade pip
-          
-          # Install required packages
-          pip install -r requirements.txt
-          
-          # Run daemon service
-          sudo mv .env /etc/systemd/system/tally-light.env
-          sudo cp tally-light.service /etc/systemd/system/tally-light.service
+            echo "Writing environment file..."
+            cat <<'EOF' > .env
+            DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+            DEBUG=False
+            EOF
 
-          sudo systemctl daemon-reload
-          sudo systemctl restart tally-light
-          sudo systemctl status tally-light
-          
-          # Optional: Check the status of the service
-          sudo systemctl status tally-light
+            if [ ! -d "venv" ]; then
+              echo "Creating virtual environment..."
+              python3 -m venv venv
+            fi
+
+            source venv/bin/activate
+
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+
+            sudo install -m 600 .env /etc/systemd/system/tally-light.env
+            sudo install -m 644 tally-light.service /etc/systemd/system/tally-light.service
+
+            sudo systemctl daemon-reload
+            sudo systemctl restart tally-light
+            sudo systemctl --no-pager --full status tally-light

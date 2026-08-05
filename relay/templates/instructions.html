@@ -93,7 +93,6 @@
             font-size: 0.95em;
         }
 
-        /* Color legend */
         .color-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -143,7 +142,6 @@
             background: #555;
         }
 
-        /* Troubleshooting */
         .issue {
             border-left: 5px solid var(--danger);
             background: #fff5f5;
@@ -298,15 +296,15 @@
                 <p><strong>Possible causes:</strong></p>
                 <ul>
                     <li>Wrong Wi-Fi credentials</li>
-                    <li><b>The Wi-Fi network must be 2.4&nbsp;GHz, NOT 5&nbsp;GHz</b> for the Tally Light to connect</li>
+                    <li>USage of Wi-Fi network not supported by Tally Light</li>
                 </ul>
 
                 <div class="solution">
                     <p><strong>Solution:</strong></p>
                     <ul>
-                        <li>Verify the ATEM IP address</li>
-                        <li>Ensure the .exe program shows “Connected to Atem Switcher”</li>
-                        <li>Confirm the Relay Room ID matches exactly (case-sensitive)</li>
+                        <li>Use <b>2.4GHz, NOT 5GHz</b> Wi-Fi network. Tally light's cannot connect to 5GHz one.</li>
+                        <li>Fix wrong credentials</li>
+                        <li>Restart the Tally Light</li>
                     </ul>
                 </div>
             </div>
