@@ -23,7 +23,7 @@ WorkingDirectory=/home/jedrz/Tally-light/relay
 EnvironmentFile=/etc/systemd/system/tally-light.env
 
 # Command to run the application
-ExecStart=python manage.py runserver 0.0.0.0:9000
+ExecStart=python manage.py runserver 0.0.0.0:9050
 
 
 # Restart policy, only on failure
