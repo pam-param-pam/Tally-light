@@ -15,7 +15,7 @@ The transmitter must be on the ATEM network. Tally Lights need network access to
 
 Download `Tally-Transmitter.exe` from the [latest GitHub release](https://github.com/pam-param-pam/Tally-light/releases/latest) on Windows. To run from source, install dependencies with `pip install -r transmiter/requirements.txt`, then run `python transmiter/gui.py` (or the PyCharm **transmiter** run configuration).
 
-The `Build Tally Transmitter` GitHub Actions workflow can also be run manually to produce a downloadable workflow artifact. Pushing a tag whose name starts with `v`, such as `v1.0.0`, builds the Windows executable, creates the corresponding GitHub release if needed, and attaches `Tally-Transmitter.exe` to it.
+Run the `Build Tally Transmitter` GitHub Actions workflow manually and enter a release tag such as `v1.0.0`. It builds the Windows executable, creates the corresponding GitHub release if needed, attaches `Tally-Transmitter.exe`, and keeps the executable as a workflow artifact. Commits and tag pushes do not start this workflow.
 
 Open **Settings** to import or replace the connection profile, save default Tally Light Wi-Fi details, or clear saved application data. On Windows, settings are stored in `%LOCALAPPDATA%\TallyLights\settings.json`; on macOS, in `~/Library/Application Support/TallyLights/settings.json`; and on Linux, in `${XDG_CONFIG_HOME:-~/.config}/TallyLights/settings.json`.
 
