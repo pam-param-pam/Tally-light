@@ -1,4 +1,6 @@
-from django.urls import path
+from django.conf import settings
+from django.urls import path, re_path
+from django.views.static import serve
 
 from .api.tally_lights import live as live_api
 from .api.tally_lights import (all_tally_light_settings, tally_light_list,
@@ -22,4 +24,6 @@ urlpatterns = [
     path("api/tally-lights/settings", all_tally_light_settings, name="all_tally_light_settings"),
     path("api/tally-lights/<str:device_id>/settings", tally_light_settings, name="tally_light_settings"),
     path("api/live", live_api, name="live_api"),
+    re_path(r"^static/(?P<path>.*)$", serve,
+            {"document_root": settings.STATIC_ROOT}),
 ]
