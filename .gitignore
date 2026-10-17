@@ -2,3 +2,4 @@
 /relay/db.sqlite3
 __pycache__/
 /relay/.env
+/relay/staticfiles/

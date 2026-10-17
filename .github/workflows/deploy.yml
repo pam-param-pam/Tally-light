@@ -59,6 +59,7 @@ jobs:
             pip install -r requirements.txt
 
             python manage.py migrate --noinput
+            python manage.py collectstatic --noinput
 
             sudo install -m 600 .env /etc/systemd/system/tally-light.env
             sudo install -m 644 tally-light.service /etc/systemd/system/tally-light.service
