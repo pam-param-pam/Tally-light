@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="relay" type="PythonConfigurationType" factoryName="Python">
+    <module name="tally-light" />
+    <option name="PARENT_ENVS" value="true" />
+    <option name="SDK_HOME" value="$PROJECT_DIR$/.venv/Scripts/python.exe" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/relay" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/relay/manage.py" />
+    <option name="PARAMETERS" value="runserver 0.0.0.0:9050" />
+    <option name="MODULE_MODE" value="false" />
+    <method v="2" />
+  </configuration>
+</component>

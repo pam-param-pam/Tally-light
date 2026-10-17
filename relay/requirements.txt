@@ -1,4 +1,6 @@
 Django==4.2.16
+djangorestframework==3.15.2
 python-dotenv==1.0.1
 channels==4.1.0
 daphne==4.0.0
+shortuuid==1.0.13

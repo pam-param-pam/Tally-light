@@ -1,0 +1,52 @@
+{% extends 'base_console.html' %}
+{% block title %}Getting started · Tally Control{% endblock %}
+{% block nav_home %}active{% endblock %}
+{% block content %}
+  <header class="page-header hero-header">
+    <div>
+      <span class="eyebrow">GETTING STARTED</span>
+      <h1>Set up your tally system</h1>
+      <p>Follow these four steps in order. You only need to download the connection profile once.</p>
+    </div>
+    <a class="button secondary" href="{% url 'faq' %}">Need help?</a>
+  </header>
+
+  <ol class="setup-steps">
+    <li class="setup-step">
+      <span class="step-number">1</span>
+      <div class="step-copy">
+        <span class="step-label">DESKTOP APP</span>
+        <h2>Download the transmitter</h2>
+        <p>Install the transmitter on the Windows computer that can reach your ATEM switcher.</p>
+        <a class="button primary" href="https://github.com/pam-param-pam/Tally-light/releases/latest">Open GitHub releases</a>
+      </div>
+    </li>
+    <li class="setup-step">
+      <span class="step-number">2</span>
+      <div class="step-copy">
+        <span class="step-label">SECURE CONNECTION</span>
+        <h2>Download your connection profile</h2>
+        <p>The profile connects the transmitter and Tally Lights to this relay. Import it into the transmitter app.</p>
+        <a class="button primary" href="{% url 'account' %}#connection-profile">Open connection profile</a>
+      </div>
+    </li>
+    <li class="setup-step">
+      <span class="step-number">3</span>
+      <div class="step-copy">
+        <span class="step-label">FIRST TALLY LIGHT</span>
+        <h2>Configure a Tally Light</h2>
+        <p>Connect a Tally Light by USB, open <strong>Configure Tally Light</strong> in the transmitter app, and save its settings.</p>
+        <a class="text-link" href="{% url 'faq' %}#configure-tally-light">Read the Tally Light setup steps →</a>
+      </div>
+    </li>
+    <li class="setup-step">
+      <span class="step-number">4</span>
+      <div class="step-copy">
+        <span class="step-label">GO LIVE</span>
+        <h2>Start transmitting ATEM state</h2>
+        <p>Choose your ATEM in the transmitter app and press Start. <a class="text-link" href="{% url 'live' %}">View the live dashboard as soon as the transmitter connects.</a></p>
+        <a class="button primary" href="{% url 'live' %}">Open live view</a>
+      </div>
+    </li>
+  </ol>
+{% endblock %}

@@ -1,1 +1,4 @@
-scapy==2.5.0
+PyATEMMax
+websocket-client
+psutil
+pyserial

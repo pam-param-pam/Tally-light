@@ -1,0 +1,78 @@
+{% extends 'base_console.html' %}
+{% load static %}
+{% block title %}Account · Tally Control{% endblock %}
+{% block nav_account %}active{% endblock %}
+{% block scripts %}<script src="{% static 'account.js' %}?v=6" defer></script>{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div><span class="eyebrow">ACCOUNT</span><h1>Account and connection profile</h1><p>Manage your dashboard login and the credentials used by your hardware.</p></div>
+  </header>
+
+  {% for message in messages %}<div class="message {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+
+  <div class="settings-layout">
+    <section class="card">
+      <div class="card-header"><div><h2>Change login name</h2><p>This is the name you enter on the dashboard login page.</p></div></div>
+      <form method="post" class="stacked-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="username">
+        <label>Login name<input name="username" value="{{ username_value }}" required maxlength="150" autocomplete="username"></label>
+        <label>Current password<input name="current_password" type="password" required autocomplete="current-password"></label>
+        <button class="button primary" type="submit">Save login name</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><div><h2>Change password</h2><p>Use a strong password that is not used for another account.</p></div></div>
+      <form method="post" class="stacked-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="password">
+        <label>Current password<input name="old_password" type="password" required autocomplete="current-password"></label>
+        <label>New password<input name="new_password1" type="password" required autocomplete="new-password"></label>
+        <label>Confirm new password<input name="new_password2" type="password" required autocomplete="new-password"></label>
+        <button class="button primary" type="submit">Save password</button>
+      </form>
+    </section>
+
+    <section id="connection-profile" class="card profile-card">
+      <div class="card-header">
+        <div>
+          <h2>Connection profile</h2>
+          {% if hardware_credentials %}
+            <p>Created {{ hardware_credentials.rotated_at|date:"j M Y, H:i" }}. For security, its secrets cannot be downloaded again.</p>
+          {% else %}
+            <p>Create the secure JSON file that connects the transmitter and Tally Lights to this relay.</p>
+          {% endif %}
+        </div>
+        <span class="security-badge">Secrets shown once</span>
+      </div>
+      <form id="profile-form" method="post" class="stacked-form"{% if hardware_credentials %} data-rotation-required{% endif %}>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="{% if hardware_credentials %}rotate_hardware_credentials{% else %}generate_hardware_credentials{% endif %}">
+        <input id="rotation-confirmed" type="hidden" name="confirm_rotation" value="">
+        <label>Public relay URL<input name="relay_url" type="url" value="{{ suggested_relay_url }}" required autocomplete="url"></label>
+        <label>Current dashboard password<input name="current_password" type="password" required autocomplete="current-password"></label>
+        {% if hardware_credentials %}
+          <div class="warning-box"><strong>Need another copy?</strong><p>The relay stores only secure hashes, so it cannot recreate the current file. You must rotate the credentials and reconnect all hardware.</p></div>
+          <button id="open-rotation-dialog" class="button danger" type="button">Rotate and download a new profile</button>
+        {% else %}
+          <p class="form-note">Import the downloaded file into the transmitter app. Keep it private because it contains hardware credentials.</p>
+          <button class="button primary" type="submit">Create and download profile</button>
+        {% endif %}
+      </form>
+    </section>
+  </div>
+
+  {% if hardware_credentials %}
+    <dialog id="rotation-dialog" class="dialog confirm-dialog">
+      <div class="dialog-header"><div><span class="eyebrow danger-text">CREDENTIAL ROTATION</span><h2>Replace the current connection profile?</h2></div><button class="icon-button" type="button" data-close-dialog aria-label="Close">×</button></div>
+      <p>This immediately revokes both current tokens and disconnects the transmitter and every Tally Light.</p>
+      <ol>
+        <li>Import the new file into the transmitter app.</li>
+        <li>Upload settings to every Tally Light again.</li>
+        <li>Restart the transmitter.</li>
+      </ol>
+      <div class="dialog-actions"><button class="button secondary" type="button" data-close-dialog>Cancel</button><button id="confirm-rotation" class="button danger" type="button">Rotate credentials</button></div>
+    </dialog>
+  {% endif %}
+{% endblock %}

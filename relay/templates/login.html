@@ -1,0 +1,22 @@
+{% load static %}
+]<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in · Tally Control</title>
+  <link rel="stylesheet" href="{% static 'console.css' %}?v=6">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="brand login-brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><strong>Tally Control</strong><small>Production dashboard</small></span></div>
+    <div><span class="eyebrow">WELCOME BACK</span><h1>Log in</h1><p>Use your dashboard account to manage the relay.</p></div>
+    {% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" class="stacked-form">
+      {% csrf_token %}
+      <label>Login name<input name="name" autocomplete="username" required autofocus></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="button primary" type="submit">Log in</button>
+    </form>
+  </main>
+</body>
+</html>

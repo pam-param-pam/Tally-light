@@ -8,7 +8,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
-
 # SECURITY WARNING: don't run with debug turned on in production!
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
@@ -19,8 +18,10 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'relay',
     'channels',
     'daphne',
+    'rest_framework',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -29,6 +30,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '10/minute',
+        'relay_auth': '20/minute',
+        'dashboard': '240/minute',
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -119,8 +128,27 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGIN_URL = '/login'
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'relay': {'format': '{asctime} {levelname} {name}: {message}', 'style': '{'},
+    },
+    'handlers': {'console': {'class': 'logging.StreamHandler', 'formatter': 'relay'}},
+    'loggers': {'relay.consumers': {'handlers': ['console'], 'level': 'INFO', 'propagate': False}},
+}
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = os.getenv('COOKIE_SECURE', str(not DEBUG)).lower() == 'true'
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+SESSION_COOKIE_AGE = 60 * 60 * 12
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True

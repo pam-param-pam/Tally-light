@@ -1,0 +1,69 @@
+{% extends 'base_console.html' %}
+{% load static %}
+{% block title %}View live · Tally Control{% endblock %}
+{% block nav_live %}active{% endblock %}
+{% block scripts %}<script src="{% static 'live.js' %}?v=7" defer></script>{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">LIVE PRODUCTION</span>
+      <h1>Current tally state</h1>
+      <p>Changes from the transmitter and connected Tally Lights appear here immediately.</p>
+    </div>
+    <div id="relay-status" class="connection-status waiting"><span></span>Connecting to relay</div>
+  </header>
+
+  <section class="status-strip" aria-label="Transmitter status">
+    <div><span>Transmitter</span><strong id="transmitter-status">Waiting</strong></div>
+    <div><span>Program</span><strong id="program-source">—</strong></div>
+    <div><span>Preview</span><strong id="preview-source">—</strong></div>
+    <div><span>Last ATEM update</span><strong id="live-updated">—</strong></div>
+  </section>
+
+  <section class="card brightness-control" aria-labelledby="all-tally-lights-brightness-label">
+    <div>
+      <label id="all-tally-lights-brightness-label" for="all-tally-lights-brightness">All Tally Lights brightness</label>
+      <p>Adjust every connected Tally Light at once.</p>
+    </div>
+    <div class="range-control">
+      <input id="all-tally-lights-brightness" type="range" min="0" max="255" value="255" disabled>
+      <output id="all-tally-lights-brightness-value" for="all-tally-lights-brightness">255</output>
+    </div>
+  </section>
+
+  <section class="content-section">
+    <div class="section-header">
+      <div><span class="eyebrow">CONNECTED TALLY LIGHTS</span><h2>Tally Lights <span id="live-total" class="count">0</span></h2></div>
+      <span class="muted">Updates instantly</span>
+    </div>
+    <div id="live-grid" class="tally-light-grid"></div>
+    <div id="live-empty" class="empty-state">
+      <h3>No Tally Lights are connected</h3>
+      <p>Configure a Tally Light in the transmitter app, then power it on.</p>
+    </div>
+  </section>
+
+  <dialog id="tally-light-dialog" class="dialog">
+    <form id="tally-light-form">
+      {% csrf_token %}
+      <div class="dialog-header">
+        <div><span class="eyebrow">TALLY LIGHT SETTINGS</span><h2 id="tally-light-dialog-title">Edit Tally Light</h2></div>
+        <button class="icon-button" type="button" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <input id="tally-light-device-id" type="hidden">
+      <div class="form-grid">
+        <label>Name<input id="tally-light-name" required maxlength="30"></label>
+        <label>ATEM source<input id="tally-light-source" type="number" required min="1" max="255"></label>
+        <label class="range-field">Brightness <output id="tally-light-brightness-value" for="tally-light-brightness">255</output><input id="tally-light-brightness" type="range" required min="0" max="255" value="255"></label>
+        <label>Relay URL<input id="tally-light-relay-url" type="url" disabled></label>
+        <label>Wi-Fi name<input id="tally-light-wifi-ssid" required maxlength="32"></label>
+        <label>Wi-Fi password<span class="password-field"><input id="tally-light-wifi-password" type="password" required minlength="1" maxlength="63" autocomplete="current-password"><button id="toggle-wifi-password" type="button" aria-label="Show Wi-Fi password" aria-pressed="false">Show</button></span></label>
+      </div>
+      <p class="form-note">Brightness is applied while you move the slider. Name, source, and Wi-Fi changes restart the Tally Light.</p>
+      <div class="dialog-actions">
+        <button class="button secondary" type="button" data-close-dialog>Cancel</button>
+        <button class="button primary" type="submit">Save settings</button>
+      </div>
+    </form>
+  </dialog>
+{% endblock %}

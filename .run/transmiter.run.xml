@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="transmiter" type="PythonConfigurationType" factoryName="Python">
+    <module name="tally-light" />
+    <option name="PARENT_ENVS" value="true" />
+    <option name="SDK_HOME" value="$PROJECT_DIR$/.venv/Scripts/python.exe" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/transmiter" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/transmiter/gui.py" />
+    <option name="PARAMETERS" value="" />
+    <option name="MODULE_MODE" value="false" />
+    <option name="EMULATE_TERMINAL" value="true" />
+    <method v="2" />
+  </configuration>
+</component>

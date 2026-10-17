@@ -10,15 +10,18 @@ from django.core.asgi import get_asgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'relay.settings')
 django_asgi_app = get_asgi_application()
 
-from .consumers import TallyConsumer, AtemConsumer
+from .consumers.tally_light import TallyLightConsumer
+from .consumers.dashboard import DashboardConsumer
+from .consumers.transmitter import TransmitterConsumer
+from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 
 application = ProtocolTypeRouter({
     'http': django_asgi_app,
 
-    'websocket': URLRouter([
-        path('tally', TallyConsumer.as_asgi()),
-        path('atem', AtemConsumer.as_asgi()),
-
-    ]),
+    'websocket': AuthMiddlewareStack(URLRouter([
+        path('ws/dashboard', DashboardConsumer.as_asgi()),
+        path('ws/lights', TallyLightConsumer.as_asgi()),
+        path('ws/transmitters', TransmitterConsumer.as_asgi()),
+    ])),
 })

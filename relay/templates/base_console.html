@@ -1,0 +1,38 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101828">
+  <title>{% block title %}Tally Control{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'console.css' %}?v=7">
+  <script src="{% static 'console.js' %}?v=6" defer></script>
+  {% block scripts %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="{% url 'index' %}" aria-label="Tally Control home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><strong>Tally Control</strong><small>Production dashboard</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="{% url 'index' %}" class="{% block nav_home %}{% endblock %}">Getting started</a>
+        <a href="{% url 'live' %}" class="{% block nav_live %}{% endblock %}">View live</a>
+        <a href="{% url 'colors' %}" class="{% block nav_colors %}{% endblock %}">Tally Light colors</a>
+        <a href="{% url 'faq' %}" class="{% block nav_faq %}{% endblock %}">FAQ</a>
+      </nav>
+      <div class="user-menu">
+        <a href="{% url 'account' %}" class="{% block nav_account %}{% endblock %}">{{ request.user.username }}</a>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+      </div>
+    </header>
+
+    <main class="page-container">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

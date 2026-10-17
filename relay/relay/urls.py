@@ -1,24 +1,25 @@
-import os
-
-from django.http import HttpResponse, FileResponse
-from django.shortcuts import render
 from django.urls import path
 
+from .api.tally_lights import live as live_api
+from .api.tally_lights import (all_tally_light_settings, tally_light_list,
+                               tally_light_settings)
+from .api.relay import relay_check
+from .pages.account import account
+from .pages.authentication import login_view, logout_view
+from .pages.dashboard import colors, faq, index, live
 
-def index(request):
-    return render(request, 'instructions.html')
-
-def download_oldprogram(request):
-    file_path = os.path.join('static/old_tallycli.exe')
-    return FileResponse(open(file_path, 'rb'), as_attachment=True, filename='OLD_ATEMlistener.exe')
-
-def download_program(request):
-    file_path = os.path.join('static/tallycli.exe')
-    return FileResponse(open(file_path, 'rb'), as_attachment=True, filename='ATEMlistener.exe')
 
 urlpatterns = [
     path("", index, name="index"),
-    path("download/program", download_program, name="download a program"),
-    path("download/oldprogram", download_oldprogram, name="download a program"),
-
+    path("login", login_view, name="login"),
+    path("logout", logout_view, name="logout"),
+    path("account", account, name="account"),
+    path("live", live, name="live"),
+    path("colors", colors, name="colors"),
+    path("faq", faq, name="faq"),
+    path("api/relay/check", relay_check, name="relay_check"),
+    path("api/tally-lights", tally_light_list, name="tally_light_list"),
+    path("api/tally-lights/settings", all_tally_light_settings, name="all_tally_light_settings"),
+    path("api/tally-lights/<str:device_id>/settings", tally_light_settings, name="tally_light_settings"),
+    path("api/live", live_api, name="live_api"),
 ]

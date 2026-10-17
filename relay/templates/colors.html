@@ -1,0 +1,15 @@
+{% extends 'base_console.html' %}
+{% block title %}Tally Light colors · Tally Control{% endblock %}
+{% block nav_colors %}active{% endblock %}
+{% block content %}
+  <header class="page-header"><div><span class="eyebrow">REFERENCE</span><h1>What each Tally Light color means</h1><p>Use the physical LED color to understand what the Tally Light is doing.</p></div></header>
+  <div class="color-list">
+    <article><span class="color-swatch blue"></span><div><h2>Blue</h2><p>The Tally Light is connecting to Wi-Fi. If it stays blue, check the Wi-Fi name and password and confirm the network supports 2.4 GHz.</p></div></article>
+    <article><span class="color-swatch pink"></span><div><h2>Pink</h2><p>The Tally Light has Wi-Fi and is connecting and authenticating with the relay.</p></div></article>
+    <article><span class="color-swatch yellow"></span><div><h2>Yellow</h2><p>The connection is ready, but no current program or preview state is available.</p></div></article>
+    <article><span class="color-swatch green"></span><div><h2>Green</h2><p>The configured source is in ATEM preview. The camera is likely to go live next.</p></div></article>
+    <article><span class="color-swatch red"></span><div><h2>Red</h2><p>The configured source is live on program.</p></div></article>
+    <article><span class="color-swatch off"></span><div><h2>Off</h2><p>The source is neither on program nor preview, or the configured brightness is zero.</p></div></article>
+  </div>
+  <div class="next-link"><span>Something does not look right?</span><a class="button secondary" href="{% url 'faq' %}">Open troubleshooting</a></div>
+{% endblock %}
