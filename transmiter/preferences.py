@@ -8,7 +8,6 @@ from pathlib import Path
 from uuid import uuid4
 
 from errors import AppError
-from cue_sources import MockSettings
 from relay_profile import relay_urls, validate_token
 
 
@@ -33,8 +32,7 @@ def default_preferences():
     return {"version": 5, "setup": "unconfigured", "relay_url": "",
             "transmitter_token": "", "tally_light_token": "",
             "default_wifi_ssid": "", "default_wifi_password": "",
-            "last_atem_ip": "", "mock_first": 1, "mock_last": 3,
-            "mock_interval_ms": 1000}
+            "last_atem_ip": ""}
 
 
 class PreferenceStore:
@@ -62,9 +60,6 @@ class PreferenceStore:
             if loaded["default_wifi_ssid"] or loaded["default_wifi_password"]:
                 validate_default_wifi(
                     loaded["default_wifi_ssid"], loaded["default_wifi_password"])
-            mock = MockSettings.from_values(
-                loaded["mock_first"], loaded["mock_last"], loaded["mock_interval_ms"])
-            loaded.update(mock_first=mock.first, mock_last=mock.last, mock_interval_ms=mock.interval_ms)
             return loaded
         except (OSError, UnicodeError, ValueError, KeyError) as exc:
             raise AppError(f"Could not read saved preferences: {exc}") from exc

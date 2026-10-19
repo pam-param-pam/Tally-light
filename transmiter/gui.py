@@ -7,6 +7,7 @@ from datetime import datetime
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 
 from app_backend import AppBackend
+from atem_simulator import SimulationSettings
 from errors import AppError
 
 
@@ -51,7 +52,7 @@ class TallyApp:
         header.pack_propagate(False)
         tk.Label(header, text="Tally Lights", bg="#203552", fg="white",
                  font=("Segoe UI Semibold", 20)).pack(anchor="w", padx=24, pady=(12, 0))
-        tk.Label(header, text="Configure Tally Lights over USB · send live or mock cues through your relay",
+        tk.Label(header, text="Configure Tally Lights over USB · send ATEM cues through your relay",
                  bg="#203552", fg="#c7d5ee", font=("Segoe UI", 10)).pack(anchor="w", padx=25)
 
         nav = ttk.Frame(self.root, padding=(18, 14, 18, 0))
@@ -63,13 +64,53 @@ class TallyApp:
             button.pack(side="left", padx=(0, 8))
             self.nav[key] = button
 
-        self.host = ttk.Frame(self.root, padding=18)
-        self.host.pack(fill="both", expand=True)
+        viewport = ttk.Frame(self.root)
+        viewport.pack(fill="both", expand=True)
+        viewport.rowconfigure(0, weight=1)
+        viewport.columnconfigure(0, weight=1)
+        self.page_canvas = tk.Canvas(viewport, bg="#f3f6fb", highlightthickness=0,
+                                     yscrollincrement=24, xscrollincrement=24)
+        self.page_canvas.grid(row=0, column=0, sticky="nsew")
+        vertical = ttk.Scrollbar(viewport, orient="vertical", command=self.page_canvas.yview)
+        vertical.grid(row=0, column=1, sticky="ns")
+        horizontal = ttk.Scrollbar(viewport, orient="horizontal", command=self.page_canvas.xview)
+        horizontal.grid(row=1, column=0, sticky="ew")
+        self.page_canvas.configure(yscrollcommand=vertical.set, xscrollcommand=horizontal.set)
+        self.host = ttk.Frame(self.page_canvas, padding=18)
+        self.page_window = self.page_canvas.create_window((0, 0), window=self.host, anchor="nw")
+        self.host.bind("<Configure>", self._resize_page)
+        self.page_canvas.bind("<Configure>", self._resize_page)
+        self.root.bind("<MouseWheel>", self._scroll_page, add="+")
+        self.root.bind("<Button-4>", self._scroll_page, add="+")
+        self.root.bind("<Button-5>", self._scroll_page, add="+")
         self.pages = {key: ttk.Frame(self.host) for key in self.nav}
         self._settings_page()
         self._tally_page()
         self._transmit_page()
         self._monitor_page()
+
+    def _resize_page(self, _event=None):
+        width = max(self.host.winfo_reqwidth(), self.page_canvas.winfo_width())
+        height = max(self.host.winfo_reqheight(), self.page_canvas.winfo_height())
+        self.page_canvas.itemconfigure(self.page_window, width=width, height=height)
+        self.page_canvas.configure(scrollregion=(0, 0, width, height))
+
+    def _scroll_page(self, event):
+        # Text logs, lists and dropdowns keep their own wheel behavior.
+        widget = event.widget
+        if widget.winfo_class() in ("Text", "Treeview", "Listbox", "TCombobox", "TSpinbox"):
+            return
+        if not (widget == self.page_canvas or str(widget).startswith(str(self.host) + ".")
+                or widget == self.host):
+            return
+        if getattr(event, "num", None) in (4, 5):
+            steps = -1 if event.num == 4 else 1
+        elif event.delta:
+            steps = -int(event.delta / 120) if abs(event.delta) >= 120 else (-1 if event.delta > 0 else 1)
+        else:
+            return
+        self.page_canvas.yview_scroll(steps, "units")
+        return "break"
 
     def _section(self, parent, title, hint=""):
         frame = ttk.Frame(parent)
@@ -446,18 +487,6 @@ class TallyApp:
         summary = self._section(page, "Transmitter", "Connection details come from Settings.")
         self.transmit_relay = tk.StringVar()
         ttk.Label(summary, textvariable=self.transmit_relay, style="Hint.TLabel").pack(anchor="w")
-        modes = ttk.Frame(summary)
-        modes.pack(anchor="w", pady=(12, 0))
-        self.tx_mode = tk.StringVar(value="atem")
-        self.tx_mode_buttons = [
-            ttk.Radiobutton(modes, text="Live ATEM", value="atem", variable=self.tx_mode,
-                            command=self._tx_mode_changed),
-            ttk.Radiobutton(modes, text="Mock transmitter", value="mock", variable=self.tx_mode,
-                            command=self._tx_mode_changed),
-        ]
-        self.tx_mode_buttons[0].pack(side="left", padx=(0, 18))
-        self.tx_mode_buttons[1].pack(side="left")
-
         self.atem_options = ttk.Frame(summary)
         self.atem_options.pack(fill="x", pady=(12, 0))
         self.tx_atem_ip = tk.StringVar(value=self.backend.profile["last_atem_ip"])
@@ -468,7 +497,7 @@ class TallyApp:
         ttk.Entry(scan_row, textvariable=self.scan_scope).pack(side="left", fill="x", expand=True)
         self.scan_button = ttk.Button(scan_row, text="Scan networks", command=self._toggle_scan)
         self.scan_button.pack(side="left", padx=(8, 0))
-        self.scan_status = tk.StringVar(value="Enter IPv4 CIDRs separated by commas to scan other networks.")
+        self.scan_status = tk.StringVar(value="Enter IPv4 CIDRs separated by commas. A running local simulator is included automatically.")
         ttk.Label(self.atem_options, textvariable=self.scan_status, style="Hint.TLabel").grid(
             row=2, column=1, sticky="w", pady=(6, 0))
         self.results = ttk.Treeview(self.atem_options, columns=("ip", "model"), show="headings", height=4)
@@ -479,23 +508,31 @@ class TallyApp:
         self.results.grid(row=3, column=1, sticky="ew", pady=(8, 0))
         self.results.bind("<<TreeviewSelect>>", self._choose_switcher)
 
-        self.mock_options = ttk.Frame(summary)
-        self.mock_options.pack(fill="x", pady=(12, 0))
-        self.mock_first = tk.StringVar(value=str(self.backend.profile["mock_first"]))
-        self.mock_last = tk.StringVar(value=str(self.backend.profile["mock_last"]))
-        self.mock_interval = tk.StringVar(value=str(self.backend.profile["mock_interval_ms"]))
-        self._field(self.mock_options, 0, "First Tally Light source", self.mock_first)
-        self._field(self.mock_options, 1, "Last Tally Light source", self.mock_last)
-        self._field(self.mock_options, 2, "Cue interval (milliseconds)", self.mock_interval)
-        ttk.Label(self.mock_options, text="Choose an interval from 10 to 60,000 milliseconds.",
-                  style="Hint.TLabel").grid(row=3, column=1, sticky="w", pady=(4, 0))
+        simulator = ttk.LabelFrame(summary, text="Simulated ATEM (pyAtemSim)", padding=10)
+        simulator.pack(fill="x", pady=(12, 0))
+        self.sim_button = ttk.Button(simulator, text="Start simulator", command=self._toggle_simulator)
+        self.sim_button.grid(row=0, column=0, padx=(0, 10))
+        self.sim_status = tk.StringVar(value="Local ATEM at 127.0.0.1 · inputs 1–8")
+        ttk.Label(simulator, textvariable=self.sim_status).grid(row=0, column=1, columnspan=3, sticky="w")
+        self.sim_first = tk.StringVar(value="1")
+        self.sim_last = tk.StringVar(value="3")
+        self.sim_duration = tk.StringVar(value="2000")
+        fields = (("First source", self.sim_first), ("Last source", self.sim_last),
+                  ("Duration per change (ms)", self.sim_duration))
+        for column, (label, variable) in enumerate(fields):
+            ttk.Label(simulator, text=label).grid(row=1, column=column, sticky="w", pady=(10, 0))
+            ttk.Entry(simulator, textvariable=variable, width=12).grid(
+                row=2, column=column, sticky="w", padx=(0, 12))
+        self.sim_apply = ttk.Button(simulator, text="Apply settings", command=self._apply_simulator)
+        self.sim_apply.grid(row=2, column=4, padx=10)
+        self.sim_apply.state(["disabled"])
+        ttk.Label(simulator, text="Hold each Program/Preview pair, then switch directly to the next. 2000 ms = 2 seconds.",
+                  style="Hint.TLabel").grid(row=3, column=0, columnspan=5, sticky="w", pady=(8, 0))
         actions = ttk.Frame(summary)
         actions.pack(anchor="w", pady=(14, 0))
         self.tx_button = ttk.Button(actions, text="Start transmitter", style="Accent.TButton",
                                     command=self._toggle_transmitter)
         self.tx_button.pack(side="left")
-        self.tx_pause_button = ttk.Button(actions, text="Pause", command=self._toggle_mock_pause)
-        self.tx_pause_button.state(["disabled"])
         self.tx_status = tk.StringVar(value="Not transmitting")
         ttk.Label(actions, textvariable=self.tx_status, style="Hint.TLabel").pack(side="left", padx=13)
         self.tx_state = tk.StringVar(value="Program —     Preview —")
@@ -505,17 +542,29 @@ class TallyApp:
         self.log_text = scrolledtext.ScrolledText(logs, height=11, state="disabled", wrap="word",
                                                  font=("Consolas", 9), bg="#fff", fg="#26344a")
         self.log_text.pack(fill="both", expand=True)
-        self._tx_mode_changed()
 
-    def _tx_mode_changed(self):
-        if self.tx_mode.get() == "atem":
-            self.atem_options.pack(fill="x", pady=(12, 0))
-            self.mock_options.pack_forget()
-            self.tx_pause_button.pack_forget()
-        else:
-            self.mock_options.pack(fill="x", pady=(12, 0))
-            self.atem_options.pack_forget()
-            self.tx_pause_button.pack(side="left", padx=(8, 0), after=self.tx_button)
+    def _toggle_simulator(self):
+        if self.backend.simulator.running:
+            self.backend.simulator.stop()
+            return
+        try:
+            self.backend.simulator.start(self._simulator_settings())
+        except AppError as exc:
+            self.sim_status.set(str(exc))
+            return
+        self.tx_atem_ip.set(self.backend.simulator.address)
+        self.sim_button.configure(text="Stop simulator")
+        self.sim_apply.state(["!disabled"])
+
+    def _simulator_settings(self):
+        return SimulationSettings.from_values(self.sim_first.get(), self.sim_last.get(),
+                                              self.sim_duration.get())
+
+    def _apply_simulator(self):
+        try:
+            self.backend.simulator.configure(self._simulator_settings())
+        except AppError as exc:
+            self.sim_status.set(str(exc))
 
     def _toggle_scan(self):
         if self.scan_running:
@@ -539,31 +588,15 @@ class TallyApp:
     def _toggle_transmitter(self):
         if self.tx_running:
             self.backend.stop_transmitter()
-            self.tx_pause_button.state(["disabled"])
             self.tx_status.set("Stopping…")
             return
         try:
-            self.backend.start_transmitter(self.tx_mode.get(), self.tx_atem_ip.get(),
-                                           self.mock_first.get(), self.mock_last.get(),
-                                           self.mock_interval.get())
+            self.backend.start_transmitter(self.tx_atem_ip.get())
         except (AppError, ValueError, OSError) as exc:
             self.tx_status.set(str(exc))
             return
         self.tx_running = True
         self.tx_button.configure(text="Stop transmitter")
-        for button in self.tx_mode_buttons:
-            button.state(["disabled"])
-        if self.tx_mode.get() == "mock":
-            self.tx_pause_button.state(["!disabled"])
-
-    def _toggle_mock_pause(self):
-        try:
-            paused = self.backend.toggle_mock_pause()
-        except AppError as exc:
-            self.tx_status.set(str(exc))
-            return
-        self.tx_pause_button.configure(text="Resume" if paused else "Pause")
-        self.tx_status.set("Mock transmitter paused" if paused else "Mock transmitter resumed")
 
     def _refresh_navigation(self):
         self.nav["tally"].state(["!disabled"] if self.backend.relay_enabled else ["disabled"])
@@ -590,6 +623,10 @@ class TallyApp:
             page.pack_forget()
         self.pages[name].pack(fill="both", expand=True)
         self.current_page = name
+        self.root.update_idletasks()
+        self._resize_page()
+        self.page_canvas.yview_moveto(0)
+        self.page_canvas.xview_moveto(0)
 
     def _append_log(self, text):
         self.log_text.configure(state="normal")
@@ -646,10 +683,11 @@ class TallyApp:
                 elif kind == "tx_done":
                     self.tx_running = False
                     self.tx_button.configure(text="Start transmitter")
-                    self.tx_pause_button.configure(text="Pause")
-                    self.tx_pause_button.state(["disabled"])
-                    for button in self.tx_mode_buttons:
-                        button.state(["!disabled"])
+                elif kind == "sim_status":
+                    self.sim_status.set(values[0])
+                    running = self.backend.simulator.running
+                    self.sim_button.configure(text="Stop simulator" if running else "Start simulator")
+                    self.sim_apply.state(["!disabled"] if running else ["disabled"])
                 elif kind == "monitor_data":
                     self._append_monitor(values[0])
                 elif kind == "monitor_closed":

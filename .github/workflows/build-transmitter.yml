@@ -39,6 +39,8 @@ jobs:
           --clean
           --onefile
           --console
+          --add-data "vendor/pyatemsim/default_config.xml;vendor/pyatemsim"
+          --add-data "vendor/pyatemsim/LICENSE;vendor/pyatemsim"
           --name Tally-Transmitter
           --distpath ../output
           --workpath ../build/transmitter

@@ -3,10 +3,11 @@
 import threading
 
 from errors import AppError
-from cue_sources import AtemSource, MockSettings, MockSource
+from cue_sources import AtemSource
+from atem_simulator import AtemSimulator
 from preferences import PreferenceStore, default_preferences, validate_default_wifi
 from relay_profile import load_connection_profile, relay_urls
-from scanner import local_ranges, scan
+from scanner import scan
 from setup_validation import InvalidSettings, validate_changes
 from transmitter import Transmitter
 from usb_setup import available_ports, read_settings, write_settings
@@ -24,10 +25,10 @@ class AppBackend:
             self.storage_error = str(exc)
             self.profile = default_preferences()
         self._tx_stop = None
-        self._tx_pause = None
         self._tx_thread = None
         self._scan_stop = None
         self._scan_thread = None
+        self.simulator = AtemSimulator(lambda message: self._emit("sim_status", message))
         self._usb_busy = False
         self._profile_busy = False
         self.connected_tally_port = None
@@ -104,6 +105,7 @@ class AppBackend:
             raise AppError(str(exc)) from exc
 
     def close(self):
+        self.simulator.stop()
         self.disconnect_monitor()
         self.stop_scan()
         self.stop_transmitter()
@@ -134,6 +136,7 @@ class AppBackend:
             raise AppError("Wait for the current settings operation to finish.")
         self.stop_transmitter()
         self.stop_scan()
+        self.simulator.stop()
         self.store.clear()
         self.profile = default_preferences()
         self.storage_error = ""
@@ -193,11 +196,13 @@ class AppBackend:
         return result
 
     def scan_ranges(self):
-        return ", ".join(map(str, local_ranges()))
+        return "192.168.1.0/24"
 
     def start_scan(self, scope):
         if self._scan_thread and self._scan_thread.is_alive():
             raise AppError("A scan is already running.")
+        if self.simulator.running:
+            scope = f"{scope}, {self.simulator.address}/32"
         stop = threading.Event()
         self._scan_stop = stop
 
@@ -218,39 +223,25 @@ class AppBackend:
         if self._scan_stop:
             self._scan_stop.set()
 
-    def start_transmitter(self, mode, atem_ip, first, last, interval_ms):
+    def start_transmitter(self, atem_ip):
         if self._profile_busy:
             raise AppError("Wait for the connection profile import to finish.")
         if not self.relay_enabled:
             raise AppError("Import a connection profile in Settings before starting the transmitter.")
         if self._tx_thread and self._tx_thread.is_alive():
             raise AppError("The transmitter is already running.")
-        if mode not in ("atem", "mock"):
-            raise AppError("Choose an ATEM or mock transmitter.")
-        if mode == "mock":
-            config = MockSettings.from_values(first, last, interval_ms)
-            first, last, interval_ms = config.first, config.last, config.interval_ms
-            source = MockSource(config, self._transmitter_status)
-        else:
-            first = self.profile["mock_first"]
-            last = self.profile["mock_last"]
-            interval_ms = self.profile["mock_interval_ms"]
-            source = AtemSource(atem_ip.strip(), self._transmitter_status)
+        source = AtemSource(atem_ip.strip(), self._transmitter_status)
         _, transmitter_url = relay_urls(self.profile["relay_url"])
         stop = threading.Event()
-        pause = source.pause if mode == "mock" else None
         worker = Transmitter(
             transmitter_url, self.profile["transmitter_token"], source,
             self._transmitter_status,
             lambda program, preview: self._emit("tx_state", program, preview),
             stop, self._log)
-        updated = {**self.profile, "last_atem_ip": atem_ip.strip(),
-                   "mock_first": first, "mock_last": last,
-                   "mock_interval_ms": interval_ms}
+        updated = {**self.profile, "last_atem_ip": atem_ip.strip()}
         self.store.save(updated)
         self.profile = updated
         self._tx_stop = stop
-        self._tx_pause = pause
 
         def run():
             try:
@@ -260,13 +251,12 @@ class AppBackend:
                 self._log(f"Transmitter stopped: {exc}")
             finally:
                 self._tx_stop = None
-                self._tx_pause = None
                 self._tx_thread = None
                 self._emit("tx_done")
 
         self._tx_thread = threading.Thread(target=run, daemon=True)
         self._tx_thread.start()
-        self._log(f"Starting {'mock' if mode == 'mock' else 'ATEM'} transmitter")
+        self._log("Starting ATEM transmitter")
 
     def _transmitter_status(self, message):
         self._emit("tx_status", message)
@@ -276,14 +266,3 @@ class AppBackend:
         if self._tx_stop:
             self._tx_stop.set()
             self._log("Stopping transmitter")
-
-    def toggle_mock_pause(self):
-        if self._tx_pause is None or self._tx_thread is None or not self._tx_thread.is_alive():
-            raise AppError("The mock transmitter is not running.")
-        if self._tx_pause.is_set():
-            self._tx_pause.clear()
-            self._log("Resuming mock transmitter")
-            return False
-        self._tx_pause.set()
-        self._log("Pausing mock transmitter")
-        return True
